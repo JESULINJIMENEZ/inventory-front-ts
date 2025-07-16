@@ -10,7 +10,7 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorBoundaryFallback } from '../components/common/ErrorBoundaryFallback';
 import { EmptyState } from '../components/common/EmptyState';
 import { useNotification } from '../contexts/NotificationContext';
-import { Plus, Edit, Trash2, Monitor, CheckCircle, XCircle, Settings } from 'lucide-react';
+import { Plus, Edit, Trash2, Monitor, CheckCircle, XCircle } from 'lucide-react';
 
 export const Devices: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -19,6 +19,7 @@ export const Devices: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,16 +41,25 @@ export const Devices: React.FC = () => {
       setError(null);
       console.log('Fetching devices...', { page, search, status });
       
-      const response = await deviceService.getDevices({
+      const params: any = {
         page,
-        limit: 10,
-        search: search || undefined,
-        status
-      });
+        limit: 10
+      };
+      
+      if (search && search.trim()) {
+        params.search = search.trim();
+      }
+      
+      if (status !== undefined) {
+        params.status = status;
+      }
+      
+      const response = await deviceService.getDevices(params);
       
       console.log('Devices response:', response);
       setDevices(response.data);
       setTotalPages(response.totalPages);
+      setTotal(response.total);
       setCurrentPage(response.currentPage);
     } catch (error: any) {
       console.error('Error fetching devices:', error);
@@ -89,11 +99,19 @@ export const Devices: React.FC = () => {
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
+      setCurrentPage(1); // Reset a la primera página cuando cambian los filtros
       fetchDevices(1, searchQuery, statusFilter);
     }, 300);
 
     return () => clearTimeout(debounceTimer);
   }, [searchQuery, statusFilter]);
+
+  // Effect separado para manejar cambios de página
+  useEffect(() => {
+    if (currentPage > 1) {
+      fetchDevices(currentPage, searchQuery, statusFilter);
+    }
+  }, [currentPage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,7 +284,7 @@ export const Devices: React.FC = () => {
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="Buscar dispositivos..."
+            placeholder="Buscar dispositivos por nombre, marca, modelo o serial..."
             className="flex-1"
           />
           <select
@@ -283,14 +301,35 @@ export const Devices: React.FC = () => {
           </select>
         </div>
 
+        {/* Información de paginación */}
+        {devices.length > 0 && (
+          <div className="mb-4 text-sm text-gray-600">
+            Mostrando {((currentPage - 1) * 10) + 1} - {Math.min(currentPage * 10, total)} de {total} dispositivos
+            {searchQuery && (
+              <span className="ml-2 text-blue-600">
+                (filtrado por "{searchQuery}")
+              </span>
+            )}
+            {statusFilter !== undefined && (
+              <span className="ml-2 text-blue-600">
+                (estado: {statusFilter ? 'Disponible' : 'Asignado'})
+              </span>
+            )}
+          </div>
+        )}
+
         <Table
           data={devices}
           columns={columns}
-          pagination={{
+          pagination={totalPages > 1 ? {
             currentPage,
             totalPages,
-            onPageChange: setCurrentPage
-          }}
+            onPageChange: (page: number) => {
+              setCurrentPage(page);
+              // Scroll hacia arriba cuando cambia la página
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          } : undefined}
           isLoading={isLoading}
           emptyMessage={
             searchQuery 

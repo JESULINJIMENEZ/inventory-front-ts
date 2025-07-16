@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Column<T> {
@@ -118,6 +118,7 @@ export function Table<T>({
             </div>
             <div>
               <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                {/* Botón anterior */}
                 <button
                   onClick={() => pagination.onPageChange(pagination.currentPage - 1)}
                   disabled={pagination.currentPage <= 1}
@@ -125,6 +126,62 @@ export function Table<T>({
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
+                
+                {/* Números de página */}
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((pageNumber) => {
+                  // Solo mostrar hasta 7 páginas para mantener el diseño limpio
+                  if (pagination.totalPages <= 7) {
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => pagination.onPageChange(pageNumber)}
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          pagination.currentPage === pageNumber
+                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  }
+                  
+                  // Para muchas páginas, mostrar solo algunas alrededor de la actual
+                  const current = pagination.currentPage;
+                  const shouldShow = 
+                    pageNumber === 1 || 
+                    pageNumber === pagination.totalPages || 
+                    (pageNumber >= current - 1 && pageNumber <= current + 1);
+                    
+                  if (shouldShow) {
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => pagination.onPageChange(pageNumber)}
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          pagination.currentPage === pageNumber
+                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  }
+                  
+                  // Mostrar puntos suspensivos
+                  if (pageNumber === current - 2 || pageNumber === current + 2) {
+                    return (
+                      <span key={`ellipsis-${pageNumber}`} className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                        ...
+                      </span>
+                    );
+                  }
+                  
+                  return null;
+                })}
+                
+                {/* Botón siguiente */}
                 <button
                   onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
                   disabled={pagination.currentPage >= pagination.totalPages}

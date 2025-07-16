@@ -11,9 +11,9 @@ export const deviceService = {
     const response = await api.get('/admin/devices', { params });
     return {
       data: response.data.devices,
-      total: response.data.total,
-      currentPage: response.data.currentPage,
-      totalPages: response.data.totalPages,
+      total: response.data.pagination.total,
+      currentPage: response.data.pagination.page,
+      totalPages: response.data.pagination.totalPages,
     };
   },
 
