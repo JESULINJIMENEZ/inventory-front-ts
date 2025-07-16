@@ -8,7 +8,7 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorBoundaryFallback } from '../components/common/ErrorBoundaryFallback';
 import { EmptyState } from '../components/common/EmptyState';
 import { useNotification } from '../contexts/NotificationContext';
-import { Plus, Edit, Trash2, User as UserIcon, Users as UsersIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, User as UserIcon, Users as UsersIcon, Upload, Download, FileText } from 'lucide-react';
 
 export const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -18,6 +18,9 @@ export const Users: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -132,6 +135,87 @@ export const Users: React.FC = () => {
     });
   };
 
+  const handleDownloadTemplate = async () => {
+    try {
+      const blob = await userService.downloadBulkUploadTemplate();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'plantilla_usuarios.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      addNotification({
+        type: 'success',
+        message: 'Plantilla descargada exitosamente'
+      });
+    } catch (error: any) {
+      addNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Error al descargar plantilla'
+      });
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const allowedTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'application/vnd.ms-excel', // .xls
+        'text/csv' // .csv
+      ];
+      
+      if (allowedTypes.includes(file.type)) {
+        setSelectedFile(file);
+      } else {
+        addNotification({
+          type: 'error',
+          message: 'Solo se permiten archivos Excel (.xlsx, .xls) o CSV'
+        });
+        event.target.value = '';
+      }
+    }
+  };
+
+  const handleBulkUpload = async () => {
+    if (!selectedFile) {
+      addNotification({
+        type: 'error',
+        message: 'Por favor selecciona un archivo'
+      });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const result = await userService.bulkUpload(selectedFile);
+      
+      addNotification({
+        type: 'success',
+        message: `Carga completada: ${result.successCount} usuarios creados exitosamente${result.errorCount > 0 ? `, ${result.errorCount} errores` : ''}`
+      });
+
+      if (result.errors && result.errors.length > 0) {
+        console.log('Errores en la carga:', result.errors);
+        // Mostrar errores detallados si es necesario
+      }
+
+      setIsBulkUploadModalOpen(false);
+      setSelectedFile(null);
+      fetchUsers(currentPage, searchQuery);
+    } catch (error: any) {
+      addNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Error en la carga masiva'
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const openModal = (user?: User) => {
     if (user) {
       setEditingUser(user);
@@ -230,13 +314,29 @@ export const Users: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
-        <button
-          onClick={() => openModal()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Nuevo Usuario</span>
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={handleDownloadTemplate}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+          >
+            <Download className="h-4 w-4" />
+            <span>Descargar Plantilla</span>
+          </button>
+          <button
+            onClick={() => setIsBulkUploadModalOpen(true)}
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
+          >
+            <Upload className="h-4 w-4" />
+            <span>Carga Masiva</span>
+          </button>
+          <button
+            onClick={() => openModal()}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Nuevo Usuario</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow p-6">
@@ -400,6 +500,103 @@ export const Users: React.FC = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal de Carga Masiva */}
+      <Modal
+        isOpen={isBulkUploadModalOpen}
+        onClose={() => {
+          setIsBulkUploadModalOpen(false);
+          setSelectedFile(null);
+        }}
+        title="Carga Masiva de Usuarios"
+      >
+        <div className="space-y-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <FileText className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-medium text-blue-800">Instrucciones</h4>
+                <ul className="text-sm text-blue-700 mt-2 space-y-1">
+                  <li>• Descarga la plantilla con el formato requerido</li>
+                  <li>• Completa la información de los usuarios</li>
+                  <li>• Sube el archivo completado (Excel o CSV)</li>
+                  <li>• Revisa los resultados de la carga</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Seleccionar archivo
+            </label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">
+                  Arrastra y suelta tu archivo aquí, o
+                </p>
+                <label className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors">
+                  <span>Seleccionar archivo</span>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                </label>
+                <p className="text-xs text-gray-500">
+                  Formatos soportados: Excel (.xlsx, .xls) y CSV
+                </p>
+              </div>
+            </div>
+            
+            {selectedFile && (
+              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <FileText className="h-4 w-4 text-green-600" />
+                  <span className="text-sm text-green-800 font-medium">
+                    {selectedFile.name}
+                  </span>
+                  <span className="text-xs text-green-600">
+                    ({(selectedFile.size / 1024).toFixed(1)} KB)
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setIsBulkUploadModalOpen(false);
+                setSelectedFile(null);
+              }}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleBulkUpload}
+              disabled={!selectedFile || isUploading}
+              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+            >
+              {isUploading ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  <span>Cargando...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  <span>Cargar Usuarios</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

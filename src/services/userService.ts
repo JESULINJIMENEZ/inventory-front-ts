@@ -9,10 +9,10 @@ export const userService = {
   }): Promise<PaginatedResponse<User>> => {
     const response = await api.get('/admin/users', { params });
     return {
-      data: response.data.users,
-      total: response.data.total,
-      currentPage: response.data.currentPage,
-      totalPages: response.data.totalPages,
+      data: response.data.users || response.data,
+      total: response.data.pagination?.total || response.data.total,
+      currentPage: response.data.pagination?.page || response.data.currentPage,
+      totalPages: response.data.pagination?.totalPages || response.data.totalPages,
     };
   },
 
@@ -33,5 +33,35 @@ export const userService = {
 
   deleteUser: async (id: number): Promise<void> => {
     await api.delete(`/admin/users/${id}`);
+  },
+
+  // Descargar plantilla para carga masiva
+  downloadBulkUploadTemplate: async (): Promise<Blob> => {
+    const response = await api.get('/admin/users/bulk-upload/template', {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  // Carga masiva de usuarios
+  bulkUpload: async (file: File): Promise<{
+    message: string;
+    successCount: number;
+    errorCount: number;
+    errors?: Array<{
+      row: number;
+      field: string;
+      message: string;
+    }>;
+  }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await api.post('/admin/users/bulk-upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
   },
 };
