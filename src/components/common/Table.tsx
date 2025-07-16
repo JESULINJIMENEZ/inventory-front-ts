@@ -18,6 +18,7 @@ interface TableProps<T> {
   };
   isLoading?: boolean;
   emptyMessage?: string;
+  emptyComponent?: ReactNode;
 }
 
 export function Table<T>({
@@ -25,7 +26,8 @@ export function Table<T>({
   columns,
   pagination,
   isLoading = false,
-  emptyMessage = 'No hay datos disponibles'
+  emptyMessage = 'No hay datos disponibles',
+  emptyComponent
 }: TableProps<T>) {
   if (isLoading) {
     return (
@@ -58,11 +60,19 @@ export function Table<T>({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {data.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500">
-                  {emptyMessage}
-                </td>
-              </tr>
+              emptyComponent ? (
+                <tr>
+                  <td colSpan={columns.length} className="px-6 py-12">
+                    {emptyComponent}
+                  </td>
+                </tr>
+              ) : (
+                <tr>
+                  <td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500">
+                    {emptyMessage}
+                  </td>
+                </tr>
+              )
             ) : (
               data.map((item, index) => (
                 <tr key={index} className="hover:bg-gray-50">

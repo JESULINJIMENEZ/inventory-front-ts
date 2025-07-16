@@ -8,13 +8,17 @@ import {
   BarChart3,
   Activity,
   Package,
+  Layers,
+  ArrowUpDown,
 } from 'lucide-react';
 
 const menuItems = [
   { path: '/dashboard', label: 'Dashboard', icon: Home },
   { path: '/users', label: 'Usuarios', icon: Users },
   { path: '/devices', label: 'Dispositivos', icon: Monitor },
+  { path: '/device-types', label: 'Tipos de Dispositivos', icon: Layers },
   { path: '/assignments', label: 'Asignaciones', icon: FileText },
+  { path: '/device-movements', label: 'Movimientos', icon: ArrowUpDown },
   { path: '/reports', label: 'Reportes', icon: BarChart3 },
   { path: '/activity-logs', label: 'Logs', icon: Activity },
 ];

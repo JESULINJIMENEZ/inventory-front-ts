@@ -8,6 +8,7 @@ import { LoginForm } from './components/auth/LoginForm';
 import { Dashboard } from './pages/Dashboard';
 import { Users } from './pages/Users';
 import { Devices } from './pages/Devices';
+import { DeviceTypes } from './pages/DeviceTypes';
 import { Assignments } from './pages/Assignments';
 import { Reports } from './pages/Reports';
 import { ActivityLogs } from './pages/ActivityLogs';
@@ -60,6 +61,16 @@ const AppContent: React.FC = () => {
             <ProtectedRoute requireAdmin>
               <Layout>
                 <Devices />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/device-types"
+          element={
+            <ProtectedRoute requireAdmin>
+              <Layout>
+                <DeviceTypes />
               </Layout>
             </ProtectedRoute>
           }

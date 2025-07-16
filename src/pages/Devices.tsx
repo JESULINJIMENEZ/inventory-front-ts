@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Device } from '../types';
+import { Link } from 'react-router-dom';
+import { Device, DeviceType } from '../types';
 import { deviceService } from '../services/deviceService';
+import { deviceTypeService } from '../services/deviceTypeService';
 import { Table } from '../components/common/Table';
 import { SearchInput } from '../components/common/SearchInput';
 import { Modal } from '../components/common/Modal';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { ErrorBoundaryFallback } from '../components/common/ErrorBoundaryFallback';
+import { EmptyState } from '../components/common/EmptyState';
 import { useNotification } from '../contexts/NotificationContext';
-import { Plus, Edit, Trash2, Monitor, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Monitor, CheckCircle, XCircle, Settings } from 'lucide-react';
 
 export const Devices: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
+  const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,7 +25,7 @@ export const Devices: React.FC = () => {
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    type_device_id: 1,
+    type_device_id: 0,
     brand: '',
     model: '',
     serial_number: '',
@@ -31,27 +37,54 @@ export const Devices: React.FC = () => {
   const fetchDevices = async (page = 1, search = '', status?: boolean) => {
     try {
       setIsLoading(true);
+      setError(null);
+      console.log('Fetching devices...', { page, search, status });
+      
       const response = await deviceService.getDevices({
         page,
         limit: 10,
         search: search || undefined,
         status
       });
+      
+      console.log('Devices response:', response);
       setDevices(response.data);
       setTotalPages(response.totalPages);
       setCurrentPage(response.currentPage);
     } catch (error: any) {
+      console.error('Error fetching devices:', error);
+      const errorMessage = error.response?.data?.message || 'Error al cargar dispositivos';
+      setError(errorMessage);
       addNotification({
         type: 'error',
-        message: 'Error al cargar dispositivos'
+        message: errorMessage
       });
+      setDevices([]);
+      setTotalPages(1);
+      setCurrentPage(1);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const fetchDeviceTypes = async () => {
+    try {
+      console.log('Fetching device types...');
+      const response = await deviceTypeService.getDeviceTypes();
+      console.log('Device types response:', response);
+      setDeviceTypes(response);
+    } catch (error: any) {
+      console.error('Error fetching device types:', error);
+      addNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Error al cargar tipos de dispositivos'
+      });
+    }
+  };
+
   useEffect(() => {
     fetchDevices();
+    fetchDeviceTypes();
   }, []);
 
   useEffect(() => {
@@ -111,7 +144,7 @@ export const Devices: React.FC = () => {
   const resetForm = () => {
     setFormData({
       name: '',
-      type_device_id: 1,
+      type_device_id: deviceTypes.length > 0 ? deviceTypes[0].id : 0,
       brand: '',
       model: '',
       serial_number: '',
@@ -198,6 +231,23 @@ export const Devices: React.FC = () => {
     }
   ];
 
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  if (error) {
+    return (
+      <ErrorBoundaryFallback
+        message={error}
+        resetError={() => {
+          setError(null);
+          fetchDevices();
+          fetchDeviceTypes();
+        }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -242,7 +292,26 @@ export const Devices: React.FC = () => {
             onPageChange: setCurrentPage
           }}
           isLoading={isLoading}
-          emptyMessage="No hay dispositivos registrados"
+          emptyMessage={
+            searchQuery 
+              ? `No se encontraron dispositivos que coincidan con "${searchQuery}"`
+              : "No hay dispositivos registrados"
+          }
+          emptyComponent={
+            !searchQuery ? (
+              <EmptyState
+                title="No hay dispositivos registrados"
+                description="Comienza agregando el primer dispositivo al sistema"
+                icon={
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Monitor className="w-8 h-8 text-blue-600" />
+                  </div>
+                }
+                actionLabel="Crear primer dispositivo"
+                onAction={() => openModal()}
+              />
+            ) : undefined
+          }
         />
       </div>
 
@@ -269,42 +338,29 @@ export const Devices: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Marca
+                Tipo de Dispositivo *
               </label>
-              <input
-                type="text"
-                value={formData.brand}
-                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+              <select
+                value={formData.type_device_id}
+                onChange={(e) => setFormData({ ...formData, type_device_id: parseInt(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Modelo
-              </label>
-              <input
-                type="text"
-                value={formData.model}
-                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Número de Serie
-              </label>
-              <input
-                type="text"
-                value={formData.serial_number}
-                onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
+              >
+                <option value={0}>Seleccionar tipo...</option>
+                {deviceTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
+                  </option>
+                ))}
+              </select>
+              {deviceTypes.length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">
+                  No hay tipos de dispositivos disponibles. 
+                  <Link to="/device-types" className="text-blue-600 hover:underline ml-1">
+                    Crear tipos de dispositivos
+                  </Link>
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -319,6 +375,49 @@ export const Devices: React.FC = () => {
                 <option value="false">Asignado</option>
               </select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Marca *
+              </label>
+              <input
+                type="text"
+                value={formData.brand}
+                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Ej: Dell, HP, Lenovo..."
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Modelo *
+              </label>
+              <input
+                type="text"
+                value={formData.model}
+                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Ej: Latitude 5520, ThinkPad X1..."
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Número de Serie *
+            </label>
+            <input
+              type="text"
+              value={formData.serial_number}
+              onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Número de serie único del dispositivo"
+              required
+            />
           </div>
 
           <div>

@@ -21,6 +21,15 @@ export interface Device {
   description?: string;
   createdAt?: string;
   updatedAt?: string;
+  DeviceType?: DeviceType;
+}
+
+export interface DeviceType {
+  id: number;
+  name: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Assignment {

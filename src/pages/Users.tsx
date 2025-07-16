@@ -6,8 +6,9 @@ import { SearchInput } from '../components/common/SearchInput';
 import { Modal } from '../components/common/Modal';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorBoundaryFallback } from '../components/common/ErrorBoundaryFallback';
+import { EmptyState } from '../components/common/EmptyState';
 import { useNotification } from '../contexts/NotificationContext';
-import { Plus, Edit, Trash2, User as UserIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, User as UserIcon, Users as UsersIcon } from 'lucide-react';
 
 export const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -255,7 +256,26 @@ export const Users: React.FC = () => {
             onPageChange: setCurrentPage
           }}
           isLoading={isLoading}
-          emptyMessage="No hay usuarios registrados"
+          emptyMessage={
+            searchQuery 
+              ? `No se encontraron usuarios que coincidan con "${searchQuery}"`
+              : "No hay usuarios registrados"
+          }
+          emptyComponent={
+            !searchQuery ? (
+              <EmptyState
+                title="No hay usuarios registrados"
+                description="Comienza agregando el primer usuario al sistema"
+                icon={
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                    <UsersIcon className="w-8 h-8 text-blue-600" />
+                  </div>
+                }
+                actionLabel="Crear primer usuario"
+                onAction={() => openModal()}
+              />
+            ) : undefined
+          }
         />
       </div>
 
