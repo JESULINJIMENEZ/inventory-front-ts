@@ -16,6 +16,7 @@ export const Users: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
@@ -48,6 +49,7 @@ export const Users: React.FC = () => {
       console.log('Users response:', response);
       setUsers(response.data);
       setTotalPages(response.totalPages);
+      setTotal(response.total);
       setCurrentPage(response.currentPage);
     } catch (error: any) {
       console.error('Error fetching users:', error);
@@ -71,11 +73,19 @@ export const Users: React.FC = () => {
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
+      setCurrentPage(1); // Reset a la primera página cuando cambia la búsqueda
       fetchUsers(1, searchQuery);
     }, 300);
 
     return () => clearTimeout(debounceTimer);
   }, [searchQuery]);
+
+  // Effect separado para manejar cambios de página
+  useEffect(() => {
+    if (currentPage > 1) {
+      fetchUsers(currentPage, searchQuery);
+    }
+  }, [currentPage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -343,18 +353,34 @@ export const Users: React.FC = () => {
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="Buscar usuarios..."
+          placeholder="Buscar usuarios por nombre, email, DNI..."
           className="mb-4"
         />
+
+        {/* Información de paginación */}
+        {users.length > 0 && (
+          <div className="mb-4 text-sm text-gray-600">
+            Mostrando {((currentPage - 1) * 10) + 1} - {Math.min(currentPage * 10, total)} de {total} usuarios
+            {searchQuery && (
+              <span className="ml-2 text-blue-600">
+                (filtrado por "{searchQuery}")
+              </span>
+            )}
+          </div>
+        )}
 
         <Table
           data={users}
           columns={columns}
-          pagination={{
+          pagination={totalPages > 1 ? {
             currentPage,
             totalPages,
-            onPageChange: setCurrentPage
-          }}
+            onPageChange: (page: number) => {
+              setCurrentPage(page);
+              // Scroll hacia arriba cuando cambia la página
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          } : undefined}
           isLoading={isLoading}
           emptyMessage={
             searchQuery 
