@@ -9,7 +9,7 @@ export const userService = {
     totalPages: number;
   }> {
     const response = await api.get('/admin/users', { params });
-    
+
     // Adaptar la respuesta del backend a la estructura esperada por el frontend
     return {
       data: response.data.users,
@@ -76,7 +76,7 @@ export const userService = {
   }> => {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     const response = await api.post('/admin/users/bulk-upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
