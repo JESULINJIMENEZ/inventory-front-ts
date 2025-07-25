@@ -1,0 +1,24 @@
+{
+  "apps": [
+    {
+      "name": "inventory-frontend",
+      "script": "npm",
+      "args": "run start",
+      "cwd": "/home/salvatorsdev/inventory-front-ts",
+      "instances": 1,
+      "exec_mode": "fork",
+      "watch": false,
+      "max_memory_restart": "500M",
+      "env": {
+        "NODE_ENV": "production",
+        "VITE_API_BASE_URL": "http://192.168.2.50:3000",
+        "VITE_REQUEST_TIMEOUT": "10000"
+      },
+      "log_file": "/home/salvatorsdev/inventory-front-ts/logs/combined.log",
+      "out_file": "/home/salvatorsdev/inventory-front-ts/logs/out.log",
+      "error_file": "/home/salvatorsdev/inventory-front-ts/logs/error.log",
+      "merge_logs": true,
+      "time": true
+    }
+  ]
+}
