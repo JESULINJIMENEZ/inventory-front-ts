@@ -4,7 +4,7 @@ export interface User {
   email: string;
   dni: string;
   phone: string;
-  role: 'admin' | 'employee';
+  role: 'admin' | 'employee' | 'gerente';
   status: 'active' | 'inactive';
   cost_center_id?: number;
   AreaDept?: AreaDept | string; // Puede ser un objeto o un string
@@ -228,7 +228,7 @@ export interface CreateUserRequest {
   password: string;
   dni: string;
   phone: string;
-  role: 'admin' | 'employee';
+  role: 'admin' | 'employee' | 'gerente';
   status: 'active' | 'inactive';
   cost_center_id?: number;
 }
@@ -239,7 +239,7 @@ export interface UpdateUserRequest {
   password?: string;
   dni: string;
   phone: string;
-  role: 'admin' | 'employee';
+  role: 'admin' | 'employee' | 'gerente';
   status: 'active' | 'inactive';
   cost_center_id?: number;
 }

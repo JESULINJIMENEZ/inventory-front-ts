@@ -328,7 +328,7 @@ export const Users: React.FC = () => {
         password: '', // La contraseña se deja vacía para edición
         dni: user.dni,
         phone: user.phone,
-        role: user.role,
+        role: user.role === 'admin' || user.role === 'employee' ? user.role : 'employee',
         status: user.status,
         cost_center_id: user.cost_center_id?.toString() || '',
         AreaDept: typeof user.AreaDept === 'object' ? user.AreaDept : null
@@ -383,7 +383,7 @@ export const Users: React.FC = () => {
             ? 'bg-red-100 text-red-800' 
             : 'bg-blue-100 text-blue-800'
         }`}>
-          {user.role === 'admin' ? 'Administrador' : 'Empleado'}
+          {user.role === 'admin' ? 'Administrador' : 'Empleado' }
         </span>
       )
     },
