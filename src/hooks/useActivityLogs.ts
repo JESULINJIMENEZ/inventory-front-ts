@@ -29,6 +29,7 @@ export const useActivityLogs = (params: UseActivityLogsParams): UseActivityLogsR
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
   
   // Usar useRef para evitar dependencias circulares
   const paramsRef = useRef(params);
@@ -90,6 +91,7 @@ export const useActivityLogs = (params: UseActivityLogsParams): UseActivityLogsR
     const executeSearch = () => {
       setCurrentPage(1);
       fetchLogs(1);
+      setHasInitiallyLoaded(true);
     };
 
     if (shouldDebounce) {
@@ -106,6 +108,14 @@ export const useActivityLogs = (params: UseActivityLogsParams): UseActivityLogsR
     params.entityIdFilter,
     params.searchQuery
   ]);
+
+  // useEffect separado para manejar cambios de página
+  useEffect(() => {
+    // Solo ejecutar después de la carga inicial
+    if (hasInitiallyLoaded) {
+      fetchLogs(currentPage);
+    }
+  }, [currentPage, hasInitiallyLoaded]);
 
   return {
     logs,

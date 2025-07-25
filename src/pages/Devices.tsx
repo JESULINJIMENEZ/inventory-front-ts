@@ -26,6 +26,7 @@ export const Devices: React.FC = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingDevice, setViewingDevice] = useState<DeviceWithUser | null>(null);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     type_device_id: 0,
@@ -33,7 +34,8 @@ export const Devices: React.FC = () => {
     model: '',
     serial_number: '',
     status: true,
-    description: ''
+    description: '',
+    plate_device: ''
   });
   const { addNotification } = useNotification();
 
@@ -97,6 +99,7 @@ export const Devices: React.FC = () => {
   useEffect(() => {
     fetchDevices();
     fetchDeviceTypes();
+    setHasInitiallyLoaded(true);
   }, []);
 
   useEffect(() => {
@@ -110,10 +113,11 @@ export const Devices: React.FC = () => {
 
   // Effect separado para manejar cambios de página
   useEffect(() => {
-    if (currentPage > 1) {
+    // Solo ejecutar después de la carga inicial
+    if (hasInitiallyLoaded) {
       fetchDevices(currentPage, searchQuery, statusFilter);
     }
-  }, [currentPage]);
+  }, [currentPage, hasInitiallyLoaded]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,7 +186,8 @@ export const Devices: React.FC = () => {
       model: '',
       serial_number: '',
       status: true,
-      description: ''
+      description: '',
+      plate_device: ''
     });
   };
 
@@ -196,7 +201,8 @@ export const Devices: React.FC = () => {
         model: device.model,
         serial_number: device.serial_number,
         status: device.status,
-        description: device.description || ''
+        description: device.description || '',
+        plate_device: device.plate_device || ''
       });
     } else {
       setEditingDevice(null);
@@ -219,6 +225,7 @@ export const Devices: React.FC = () => {
     { key: 'brand', label: 'Marca' },
     { key: 'model', label: 'Modelo' },
     { key: 'serial_number', label: 'Número de Serie' },
+    { key: 'plate_device', label: 'Placa' },
     {
       key: 'status',
       label: 'Estado',
@@ -487,6 +494,19 @@ export const Devices: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              Placa del Dispositivo
+            </label>
+            <input
+              type="text"
+              value={formData.plate_device}
+              onChange={(e) => setFormData({ ...formData, plate_device: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Placa o código del dispositivo (opcional)"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Descripción
             </label>
             <textarea
@@ -553,6 +573,10 @@ export const Devices: React.FC = () => {
                 <div>
                   <label className="text-sm font-medium text-gray-600">Número de Serie:</label>
                   <p className="text-gray-900 font-mono">{viewingDevice.serial_number}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Placa:</label>
+                  <p className="text-gray-900">{viewingDevice.plate_device || 'No especificada'}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Estado:</label>

@@ -32,6 +32,7 @@ export const Users: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -116,14 +117,16 @@ export const Users: React.FC = () => {
   useEffect(() => {
     fetchUsers();
     fetchAvailableAreas();
+    setHasInitiallyLoaded(true);
   }, []);
 
   // Effect separado para manejar cambios de página
   useEffect(() => {
-    if (currentPage > 1) {
+    // Solo ejecutar después de la carga inicial
+    if (hasInitiallyLoaded) {
       fetchUsers(currentPage, searchQuery);
     }
-  }, [currentPage]);
+  }, [currentPage, hasInitiallyLoaded]);
 
   const handleSearch = () => {
     setCurrentPage(1); // Reset a la primera página cuando hace búsqueda

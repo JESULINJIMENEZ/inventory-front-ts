@@ -32,6 +32,7 @@ export interface Device {
   brand: string;
   model: string;
   serial_number: string;
+  plate_device?: string;
   status: boolean;
   description?: string;
   createdAt?: string;
@@ -46,6 +47,7 @@ export interface DeviceWithUser {
   brand: string;
   model: string;
   serial_number: string;
+  plate_device?: string;
   status: boolean;
   type_device: {
     id: number;

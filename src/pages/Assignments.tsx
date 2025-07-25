@@ -38,6 +38,7 @@ export const Assignments: React.FC = () => {
   const [actionType, setActionType] = useState<'return' | 'transfer' | null>(null);
   const [actionNotes, setActionNotes] = useState('');
   const [transferUserId, setTransferUserId] = useState<number | null>(null);
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const [deviceSearch, setDeviceSearch] = useState('');
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
@@ -163,15 +164,25 @@ export const Assignments: React.FC = () => {
     fetchAssignments();
     fetchUsers();
     fetchDevices();
+    setHasInitiallyLoaded(true);
   }, []);
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
+      setCurrentPage(1); // Reset a la primera página cuando cambian los filtros
       fetchAssignments(1, searchQuery, statusFilter);
     }, 300);
 
     return () => clearTimeout(debounceTimer);
   }, [searchQuery, statusFilter]);
+
+  // Effect separado para manejar cambios de página
+  useEffect(() => {
+    // Solo ejecutar después de la carga inicial
+    if (hasInitiallyLoaded) {
+      fetchAssignments(currentPage, searchQuery, statusFilter);
+    }
+  }, [currentPage, hasInitiallyLoaded]);
 
   // Debounce para búsqueda de usuarios
   useEffect(() => {
