@@ -7,7 +7,6 @@ import {
   FileText,
   BarChart3,
   Activity,
-  Package,
   Layers,
   ArrowUpDown,
   Building2,
@@ -32,7 +31,11 @@ export const Sidebar: React.FC = () => {
     <div className="w-64 bg-white shadow-lg">
       <div className="flex items-center justify-center h-16 border-b border-gray-200">
         <div className="flex items-center space-x-2">
-          <Package className="h-8 w-8 text-blue-600" />
+          <img 
+            src="/logo salvators.png" 
+            alt="Salvator's Logo" 
+            className="h-10 w-auto"
+          />
           <span className="text-xl font-bold text-gray-800">LOGIS</span>
         </div>
       </div>
