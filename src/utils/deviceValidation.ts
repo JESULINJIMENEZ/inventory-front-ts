@@ -91,6 +91,101 @@ export const validateDVRStorage = (value: string): ValidationResult => {
 };
 
 /**
+ * Valida la fecha de compra
+ * Formato esperado: YYYY-MM-DD
+ */
+export const validatePurchaseDate = (value: string): ValidationResult => {
+  if (!value || value.trim() === '') {
+    return { isValid: true }; // Campo opcional
+  }
+
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  
+  if (!datePattern.test(value.trim())) {
+    return { 
+      isValid: false, 
+      error: 'Formato de fecha inválido. Use YYYY-MM-DD (ej: 2024-01-15)' 
+    };
+  }
+
+  // Validar que sea una fecha válida
+  const date = new Date(value);
+  const today = new Date();
+  
+  if (isNaN(date.getTime())) {
+    return { 
+      isValid: false, 
+      error: 'Fecha inválida. Verifique el formato YYYY-MM-DD' 
+    };
+  }
+
+  if (date > today) {
+    return { 
+      isValid: false, 
+      error: 'La fecha de compra no puede ser futura' 
+    };
+  }
+
+  return { isValid: true };
+};
+
+/**
+ * Valida la duración de garantía
+ */
+export const validateWarrantyDuration = (value: number | string, unit?: string): ValidationResult => {
+  if (!value && !unit) {
+    return { isValid: true }; // Ambos campos opcionales
+  }
+
+  if (value && !unit) {
+    return { 
+      isValid: false, 
+      error: 'Si especifica duración de garantía, debe especificar la unidad (años o meses)' 
+    };
+  }
+
+  if (!value && unit) {
+    return { 
+      isValid: false, 
+      error: 'Si especifica unidad de garantía, debe especificar la duración' 
+    };
+  }
+
+  const duration = typeof value === 'string' ? parseInt(value) : value;
+  
+  if (isNaN(duration) || duration <= 0) {
+    return { 
+      isValid: false, 
+      error: 'La duración de garantía debe ser un número positivo' 
+    };
+  }
+
+  if (unit && !['years', 'months'].includes(unit)) {
+    return { 
+      isValid: false, 
+      error: 'La unidad de garantía debe ser "years" (años) o "months" (meses)' 
+    };
+  }
+
+  // Validar rangos razonables
+  if (unit === 'years' && duration > 10) {
+    return { 
+      isValid: false, 
+      error: 'La garantía no puede ser mayor a 10 años' 
+    };
+  }
+
+  if (unit === 'months' && duration > 120) {
+    return { 
+      isValid: false, 
+      error: 'La garantía no puede ser mayor a 120 meses (10 años)' 
+    };
+  }
+
+  return { isValid: true };
+};
+
+/**
  * Valida un campo específico según su tipo
  */
 export const validateSpecificField = (fieldName: string, value: string): ValidationResult => {
@@ -103,9 +198,21 @@ export const validateSpecificField = (fieldName: string, value: string): Validat
       return validateProcessor(value);
     case 'dvr_storage':
       return validateDVRStorage(value);
+    case 'purchase_date':
+      return validatePurchaseDate(value);
     default:
       return { isValid: true };
   }
+};
+
+/**
+ * Valida los campos de garantía como conjunto
+ */
+export const validateWarrantyFields = (
+  duration: number | string | undefined, 
+  unit: string | undefined
+): ValidationResult => {
+  return validateWarrantyDuration(duration || '', unit);
 };
 
 /**

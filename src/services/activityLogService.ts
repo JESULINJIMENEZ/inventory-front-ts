@@ -1,5 +1,6 @@
 import { api } from './api';
 import { ActivityLog, PaginatedResponse } from '../types';
+import { transformApiResponse, transformPaginatedResponse } from '../utils/displayTransform';
 
 export const activityLogService = {
   getActivityLogs: async (params?: {
@@ -10,12 +11,13 @@ export const activityLogService = {
     action?: string;
   }): Promise<PaginatedResponse<ActivityLog>> => {
     const response = await api.get('/admin/activity-logs', { params });
-    return {
+    const adaptedResponse = {
       data: response.data.logs,
       total: response.data.total,
       currentPage: response.data.currentPage,
       totalPages: response.data.totalPages,
     };
+    return transformPaginatedResponse(adaptedResponse);
   },
 
   getLogsByEntity: async (entity: string, entityId: number, params?: {
@@ -30,7 +32,7 @@ export const activityLogService = {
     totalPages: number;
   }> => {
     const response = await api.get(`/admin/activity-logs/entity/${entity}/${entityId}`, { params });
-    return response.data;
+    return transformApiResponse(response.data);
   },
 
   getLogsByUser: async (userId: number, params?: {
@@ -40,12 +42,13 @@ export const activityLogService = {
     const response = await api.get('/admin/activity-logs', { 
       params: { ...params, user_id: userId }
     });
-    return {
+    const adaptedResponse = {
       data: response.data.logs,
       total: response.data.total,
       currentPage: response.data.currentPage,
       totalPages: response.data.totalPages,
     };
+    return transformPaginatedResponse(adaptedResponse);
   },
 
   getLogsByEntityAndAction: async (entity: string, action: string, params?: {
@@ -55,11 +58,12 @@ export const activityLogService = {
     const response = await api.get('/admin/activity-logs', { 
       params: { ...params, entity, action }
     });
-    return {
+    const adaptedResponse = {
       data: response.data.logs,
       total: response.data.total,
       currentPage: response.data.currentPage,
       totalPages: response.data.totalPages,
     };
+    return transformPaginatedResponse(adaptedResponse);
   },
 };

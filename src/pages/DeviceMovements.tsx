@@ -3,6 +3,7 @@ import { Table } from '../components/common/Table';
 import { deviceMovementService } from '../services/deviceMovementService';
 import { DeviceMovement } from '../types';
 import { useNotification } from '../contexts/NotificationContext';
+import { transformArrayForDisplay } from '../utils/displayTransform';
 import { ArrowUpDown, User, Monitor, Clock } from 'lucide-react';
 
 export const DeviceMovements: React.FC = () => {
@@ -37,7 +38,7 @@ export const DeviceMovements: React.FC = () => {
       }
       
       const response = await deviceMovementService.getDeviceMovements(params);
-      setMovements(response.data);
+      setMovements(transformArrayForDisplay(response.data));
       setTotal(response.total);
     } catch (error: any) {
       addNotification({

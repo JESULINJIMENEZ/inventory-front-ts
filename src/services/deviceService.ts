@@ -9,11 +9,23 @@ export const deviceService = {
     search?: string;
   }): Promise<PaginatedResponse<Device>> => {
     const response = await api.get('/admin/devices', { params });
+    
+    // Si no hay paginación (showing_all: true), usar los valores apropiados
+    if (response.data.showing_all) {
+      return {
+        data: response.data.devices,
+        total: response.data.total,
+        currentPage: 1,
+        totalPages: 1,
+      };
+    }
+    
+    // Si hay paginación, usar la estructura tradicional
     return {
       data: response.data.devices,
-      total: response.data.pagination.total,
-      currentPage: response.data.pagination.page,
-      totalPages: response.data.pagination.totalPages,
+      total: response.data.pagination?.total || response.data.total,
+      currentPage: response.data.pagination?.page || 1,
+      totalPages: response.data.pagination?.totalPages || 1,
     };
   },
 

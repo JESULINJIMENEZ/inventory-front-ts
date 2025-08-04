@@ -3,15 +3,15 @@ import { Link } from 'react-router-dom';
 import { Device, DeviceType, DeviceWithUser, DeviceTypeRequiredFields } from '../types';
 import { deviceService } from '../services/deviceService';
 import { deviceTypeService } from '../services/deviceTypeService';
-import { validateDeviceSpecificFields } from '../utils/deviceValidation';
+import { validateDeviceSpecificFields, validateWarrantyFields, validatePurchaseDate } from '../utils/deviceValidation';
 import { Table } from '../components/common/Table';
-import { SearchInput } from '../components/common/SearchInput';
 import { Modal } from '../components/common/Modal';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorBoundaryFallback } from '../components/common/ErrorBoundaryFallback';
 import { EmptyState } from '../components/common/EmptyState';
 import { useNotification } from '../contexts/NotificationContext';
-import { Plus, Edit, Trash2, Monitor, CheckCircle, XCircle, Eye, HardDrive, Cpu } from 'lucide-react';
+import { transformArrayForDisplay } from '../utils/displayTransform';
+import { Plus, Edit, Trash2, Monitor, CheckCircle, XCircle, Eye, HardDrive, Cpu, Calendar, Shield, Search } from 'lucide-react';
 
 export const Devices: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -23,6 +23,7 @@ export const Devices: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState(''); // Estado temporal for el input
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -42,9 +43,38 @@ export const Devices: React.FC = () => {
     storage: '',
     ram: '',
     processor: '',
-    dvr_storage: ''
+    dvr_storage: '',
+    // Campos de garantía y compra
+    purchase_date: '',
+    warranty_duration: '',
+    warranty_unit: 'years' as 'years' | 'months'
   });
   const { addNotification } = useNotification();
+
+  // Función para ejecutar búsqueda manual
+  const handleSearch = () => {
+    setSearchQuery(searchInput.trim());
+    setCurrentPage(1);
+  };
+
+  // Función para manejar Enter en el campo de búsqueda
+  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  // Función para limpiar búsqueda
+  const handleClearSearch = () => {
+    setSearchInput('');
+    setSearchQuery('');
+    setCurrentPage(1);
+  };
+
+  // Sincronizar searchInput con searchQuery al cargar
+  useEffect(() => {
+    setSearchInput(searchQuery);
+  }, [searchQuery]);
 
   const loadRequiredFields = async (typeDeviceId: number) => {
     if (typeDeviceId <= 0) {
@@ -63,10 +93,31 @@ export const Devices: React.FC = () => {
   };
 
   const validateSpecificFields = (): string[] => {
-    if (!requiredFields || requiredFields.required_fields.length === 0) return [];
+    const errors: string[] = [];
     
-    const validation = validateDeviceSpecificFields(formData, requiredFields.required_fields);
-    return validation.errors;
+    // Validar campos específicos por tipo de dispositivo
+    if (requiredFields && requiredFields.required_fields.length > 0) {
+      const validation = validateDeviceSpecificFields(formData, requiredFields.required_fields);
+      errors.push(...validation.errors);
+    }
+    
+    // Validar fecha de compra
+    if (formData.purchase_date) {
+      const purchaseDateValidation = validatePurchaseDate(formData.purchase_date);
+      if (!purchaseDateValidation.isValid && purchaseDateValidation.error) {
+        errors.push(purchaseDateValidation.error);
+      }
+    }
+    
+    // Validar campos de garantía
+    if (formData.warranty_duration || formData.warranty_unit) {
+      const warrantyValidation = validateWarrantyFields(formData.warranty_duration, formData.warranty_unit);
+      if (!warrantyValidation.isValid && warrantyValidation.error) {
+        errors.push(warrantyValidation.error);
+      }
+    }
+    
+    return errors;
   };
 
   const handleTypeChange = (typeDeviceId: number) => {
@@ -96,7 +147,7 @@ export const Devices: React.FC = () => {
       const response = await deviceService.getDevices(params);
       
       console.log('Devices response:', response);
-      setDevices(response.data);
+      setDevices(transformArrayForDisplay(response.data));
       setTotalPages(response.totalPages);
       setTotal(response.total);
       setCurrentPage(response.currentPage);
@@ -137,18 +188,16 @@ export const Devices: React.FC = () => {
     setHasInitiallyLoaded(true);
   }, []);
 
+  // Effect para búsqueda manual (solo cuando cambia searchQuery o statusFilter)
   useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      setCurrentPage(1); // Reset a la primera página cuando cambian los filtros
+    if (hasInitiallyLoaded) {
+      setCurrentPage(1);
       fetchDevices(1, searchQuery, statusFilter);
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery, statusFilter]);
+    }
+  }, [searchQuery, statusFilter, hasInitiallyLoaded]);
 
   // Effect separado para manejar cambios de página
   useEffect(() => {
-    // Solo ejecutar después de la carga inicial
     if (hasInitiallyLoaded) {
       fetchDevices(currentPage, searchQuery, statusFilter);
     }
@@ -168,23 +217,32 @@ export const Devices: React.FC = () => {
     }
     
     try {
-      // Preparar datos del dispositivo, excluyendo campos específicos vacíos
-      const deviceData = { ...formData };
+      // Preparar datos del dispositivo
+      const devicePayload: any = { ...formData };
+      
+      // Convertir warranty_duration de string a number
+      if (devicePayload.warranty_duration && devicePayload.warranty_duration.trim()) {
+        devicePayload.warranty_duration = parseInt(devicePayload.warranty_duration);
+      } else {
+        delete devicePayload.warranty_duration;
+      }
       
       // Limpiar campos específicos vacíos para evitar enviar strings vacías
-      if (!deviceData.storage?.trim()) delete (deviceData as any).storage;
-      if (!deviceData.ram?.trim()) delete (deviceData as any).ram;
-      if (!deviceData.processor?.trim()) delete (deviceData as any).processor;
-      if (!deviceData.dvr_storage?.trim()) delete (deviceData as any).dvr_storage;
+      if (!devicePayload.storage?.trim()) delete devicePayload.storage;
+      if (!devicePayload.ram?.trim()) delete devicePayload.ram;
+      if (!devicePayload.processor?.trim()) delete devicePayload.processor;
+      if (!devicePayload.dvr_storage?.trim()) delete devicePayload.dvr_storage;
+      if (!devicePayload.purchase_date?.trim()) delete devicePayload.purchase_date;
+      if (!devicePayload.warranty_unit?.trim()) delete devicePayload.warranty_unit;
       
       if (editingDevice) {
-        await deviceService.updateDevice(editingDevice.id, deviceData);
+        await deviceService.updateDevice(editingDevice.id, devicePayload);
         addNotification({
           type: 'success',
           message: 'Dispositivo actualizado exitosamente'
         });
       } else {
-        await deviceService.createDevice(deviceData);
+        await deviceService.createDevice(devicePayload);
         addNotification({
           type: 'success',
           message: 'Dispositivo creado exitosamente'
@@ -247,7 +305,10 @@ export const Devices: React.FC = () => {
       storage: '',
       ram: '',
       processor: '',
-      dvr_storage: ''
+      dvr_storage: '',
+      purchase_date: '',
+      warranty_duration: '',
+      warranty_unit: 'years'
     });
   };
 
@@ -266,7 +327,10 @@ export const Devices: React.FC = () => {
         storage: device.storage || '',
         ram: device.ram || '',
         processor: device.processor || '',
-        dvr_storage: device.dvr_storage || ''
+        dvr_storage: device.dvr_storage || '',
+        purchase_date: device.purchase_date || '',
+        warranty_duration: device.warranty_duration?.toString() || '',
+        warranty_unit: device.warranty_unit || 'years'
       });
       // Cargar campos requeridos para el tipo de dispositivo
       if (device.type_device_id > 0) {
@@ -324,6 +388,28 @@ export const Devices: React.FC = () => {
             <div className="flex items-center text-xs text-gray-600">
               <HardDrive className="h-3 w-3 mr-1" />
               <span>DVR: {device.dvr_storage}</span>
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'warranty',
+      label: 'Garantía & Compra',
+      render: (device: Device) => (
+        <div className="space-y-1">
+          {device.purchase_date && (
+            <div className="flex items-center text-xs text-gray-600">
+              <Calendar className="h-3 w-3 mr-1" />
+              <span>{new Date(device.purchase_date).toLocaleDateString()}</span>
+            </div>
+          )}
+          {device.warranty_duration && device.warranty_unit && (
+            <div className="flex items-center text-xs text-gray-600">
+              <Shield className="h-3 w-3 mr-1" />
+              <span>
+                {device.warranty_duration} {device.warranty_unit === 'years' ? 'años' : 'meses'}
+              </span>
             </div>
           )}
         </div>
@@ -417,12 +503,35 @@ export const Devices: React.FC = () => {
 
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex flex-col sm:flex-row gap-4 mb-4">
-          <SearchInput
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Buscar dispositivos por nombre, marca, modelo o serial..."
-            className="flex-1"
-          />
+          {/* Buscador personalizado con botón */}
+          <div className="flex-1 relative">
+            <div className="flex">
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyPress={handleSearchKeyPress}
+                placeholder="Buscar dispositivos por nombre, marca, modelo o serial..."
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <button
+                onClick={handleSearch}
+                className="px-4 py-2 bg-blue-600 text-white border border-blue-600 rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                title="Buscar dispositivos"
+              >
+                <Search className="h-4 w-4" />
+              </button>
+              {searchQuery && (
+                <button
+                  onClick={handleClearSearch}
+                  className="ml-2 px-3 py-2 text-gray-500 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  title="Limpiar búsqueda"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
           <select
             value={statusFilter === undefined ? 'all' : statusFilter.toString()}
             onChange={(e) => {
@@ -695,6 +804,60 @@ export const Devices: React.FC = () => {
             </div>
           )}
 
+          {/* Información de Garantía y Compra */}
+          <div className="border-t pt-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <Calendar className="h-5 w-5 mr-2 text-green-600" />
+              Información de Compra y Garantía
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha de Compra
+                </label>
+                <input
+                  type="date"
+                  value={formData.purchase_date}
+                  onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  title="Fecha en que se adquirió el dispositivo"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Duración de Garantía
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  value={formData.warranty_duration}
+                  onChange={(e) => setFormData({ ...formData, warranty_duration: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Ej: 3, 12, 24..."
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Unidad de Garantía
+                </label>
+                <select
+                  value={formData.warranty_unit}
+                  onChange={(e) => setFormData({ ...formData, warranty_unit: e.target.value as 'years' | 'months' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="years">Años</option>
+                  <option value="months">Meses</option>
+                </select>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Los campos de garantía son opcionales. Si especifica duración, debe especificar la unidad.
+            </p>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Descripción
@@ -839,6 +1002,44 @@ export const Devices: React.FC = () => {
                         Almacenamiento DVR:
                       </label>
                       <p className="text-gray-900 font-medium">{viewingDevice.dvr_storage}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Información de Garantía y Compra */}
+            {(viewingDevice.purchase_date || (viewingDevice.warranty_duration && viewingDevice.warranty_unit)) && (
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                  <Calendar className="h-5 w-5 mr-2 text-green-600" />
+                  Información de Compra y Garantía
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {viewingDevice.purchase_date && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        Fecha de Compra:
+                      </label>
+                      <p className="text-gray-900 font-medium">
+                        {new Date(viewingDevice.purchase_date).toLocaleDateString('es-ES', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  )}
+                  {viewingDevice.warranty_duration && viewingDevice.warranty_unit && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center">
+                        <Shield className="h-4 w-4 mr-1" />
+                        Garantía:
+                      </label>
+                      <p className="text-gray-900 font-medium">
+                        {viewingDevice.warranty_duration} {viewingDevice.warranty_unit === 'years' ? 'años' : 'meses'}
+                      </p>
                     </div>
                   )}
                 </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   Home,
   Users,
@@ -10,22 +11,33 @@ import {
   Layers,
   ArrowUpDown,
   Building2,
+  Archive,
 } from 'lucide-react';
 
 const menuItems = [
   { path: '/dashboard', label: 'Dashboard', icon: Home },
   { path: '/users', label: 'Usuarios', icon: Users },
   { path: '/areas', label: 'Áreas/Departamentos', icon: Building2 },
-  { path: '/devices', label: 'Dispositivos', icon: Monitor },
-  { path: '/device-types', label: 'Tipos de Dispositivos', icon: Layers },
-  { path: '/assignments', label: 'Asignaciones', icon: FileText },
-  { path: '/device-movements', label: 'Movimientos', icon: ArrowUpDown },
+  { path: '/devices', label: 'Dispositivos', icon: Monitor, adminOnly: true },
+  { path: '/device-types', label: 'Tipos de Dispositivos', icon: Layers, adminOnly: true },
+  { path: '/assignments', label: 'Asignaciones', icon: FileText, adminOnly: true },
+  { path: '/device-movements', label: 'Movimientos', icon: ArrowUpDown, adminOnly: true },
+  { path: '/retired-devices', label: 'Dados de Baja', icon: Archive, adminOnly: true },
   { path: '/reports', label: 'Reportes', icon: BarChart3 },
-  { path: '/activity-logs', label: 'Logs', icon: Activity },
+  { path: '/activity-logs', label: 'Logs', icon: Activity, adminOnly: true },
 ];
 
 export const Sidebar: React.FC = () => {
   const location = useLocation();
+  const { user } = useAuth();
+
+  // Filtrar elementos del menú basado en el rol del usuario
+  const filteredMenuItems = menuItems.filter(item => {
+    if (item.adminOnly && user?.role !== 'admin') {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <div className="w-64 bg-white shadow-lg">
@@ -41,7 +53,7 @@ export const Sidebar: React.FC = () => {
       </div>
       <nav className="mt-8">
         <div className="px-4 space-y-2">
-          {menuItems.map((item) => {
+          {filteredMenuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             return (

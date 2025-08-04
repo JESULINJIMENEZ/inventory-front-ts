@@ -8,6 +8,7 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorBoundaryFallback } from '../components/common/ErrorBoundaryFallback';
 import { EmptyState } from '../components/common/EmptyState';
 import { useNotification } from '../contexts/NotificationContext';
+import { transformArrayForDisplay } from '../utils/displayTransform';
 import { Plus, Edit, Trash2, Layers } from 'lucide-react';
 
 export const DeviceTypes: React.FC = () => {
@@ -33,8 +34,9 @@ export const DeviceTypes: React.FC = () => {
       const response = await deviceTypeService.getDeviceTypes();
       console.log('Device types response:', response);
       
-      setDeviceTypes(response);
-      setFilteredDeviceTypes(response);
+      const transformedData = transformArrayForDisplay(response);
+      setDeviceTypes(transformedData);
+      setFilteredDeviceTypes(transformedData);
     } catch (error: any) {
       console.error('Error fetching device types:', error);
       const errorMessage = error.response?.data?.message || 'Error al cargar tipos de dispositivos';

@@ -4,13 +4,13 @@ export interface User {
   email: string;
   dni: string;
   phone: string;
-  role: 'admin' | 'employee';
-  status: 'active' | 'inactive';
+  role: 'admin' | 'employee' | 'administrador' | 'empleado';
+  status: 'active' | 'inactive' | 'activo' | 'inactivo';
   cost_center_id?: number;
-  AreaDept?: AreaDept | string; // Puede ser un objeto o un string
-  createdAt?: string;
-  updatedAt?: string;
+  AreaDept?: AreaDept | string | null;
   assignedDevices?: AssignedDevice[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AssignedDevice {
@@ -44,6 +44,10 @@ export interface Device {
   processor?: string;
   // Campos específicos para DVR
   dvr_storage?: string;
+  // Campos de garantía y compra
+  purchase_date?: string;
+  warranty_duration?: number;
+  warranty_unit?: 'years' | 'months';
 }
 
 export interface DeviceWithUser {
@@ -71,6 +75,10 @@ export interface DeviceWithUser {
   processor?: string;
   // Campos específicos para DVR
   dvr_storage?: string;
+  // Campos de garantía y compra
+  purchase_date?: string;
+  warranty_duration?: number;
+  warranty_unit?: 'years' | 'months';
 }
 
 export interface DeviceType {
@@ -282,4 +290,33 @@ export interface UsersResponse {
     limit: number;
     totalPages: number;
   };
+}
+
+export interface RetiredDevice {
+  id: number;
+  device_id: number;
+  reason: string;
+  notes?: string;
+  status: 'retired' | 'disposed';
+  retired_at: string;
+  Device?: Device & {
+    TypeDevice?: DeviceType;
+  };
+  retiredBy?: {
+    id: number;
+    name: string;
+    email: string;
+  };
+}
+
+export interface RetireDeviceRequest {
+  device_id: number;
+  reason: string;
+  notes?: string;
+  status?: 'retired' | 'disposed';
+}
+
+export interface UpdateRetiredDeviceRequest {
+  status?: 'retired' | 'disposed';
+  notes?: string;
 }

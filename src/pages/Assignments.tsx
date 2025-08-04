@@ -9,6 +9,7 @@ import { Modal } from '../components/common/Modal';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorBoundaryFallback } from '../components/common/ErrorBoundaryFallback';
 import { useNotification } from '../contexts/NotificationContext';
+import { transformArrayForDisplay } from '../utils/displayTransform';
 import { 
   Plus, 
   Edit, 
@@ -63,7 +64,7 @@ export const Assignments: React.FC = () => {
       });
       
       console.log('Assignments response:', response);
-      setAssignments(response.data);
+      setAssignments(transformArrayForDisplay(response.data));
       setTotalPages(response.totalPages);
       setCurrentPage(response.currentPage);
     } catch (error: any) {

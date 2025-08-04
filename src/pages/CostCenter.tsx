@@ -8,6 +8,7 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorBoundaryFallback } from '../components/common/ErrorBoundaryFallback';
 import { EmptyState } from '../components/common/EmptyState';
 import { useNotification } from '../contexts/NotificationContext';
+import { transformArrayForDisplay } from '../utils/displayTransform';
 import { Plus, Edit, Trash2, Building, Hash } from 'lucide-react';
 
 export const CostCenter: React.FC = () => {
@@ -34,8 +35,8 @@ export const CostCenter: React.FC = () => {
         params.cost_center = search;
       }
       
-      const response = await areaDeptService.getAreaDepts(params);
-      setAreaDepts(response);
+      const response = await areaDeptService.getAreas(params);
+      setAreaDepts(transformArrayForDisplay(response));
     } catch (error: any) {
       console.error('Error fetching area depts:', error);
       setError(error.response?.data?.error || 'Error al cargar centros de costo');
@@ -65,13 +66,13 @@ export const CostCenter: React.FC = () => {
     e.preventDefault();
     try {
       if (editingAreaDept) {
-        await areaDeptService.updateAreaDept(editingAreaDept.id, formData);
+        await areaDeptService.updateArea(editingAreaDept.id, formData);
         addNotification({
           type: 'success',
           message: 'Centro de costo actualizado exitosamente'
         });
       } else {
-        await areaDeptService.createAreaDept(formData);
+        await areaDeptService.createArea(formData);
         addNotification({
           type: 'success',
           message: 'Centro de costo creado exitosamente'
@@ -92,7 +93,7 @@ export const CostCenter: React.FC = () => {
   const handleDelete = async (areaDept: AreaDept) => {
     if (window.confirm(`¿Estás seguro de que quieres eliminar el centro de costo "${areaDept.cost_center} - ${areaDept.name}"?`)) {
       try {
-        await areaDeptService.deleteAreaDept(areaDept.id);
+        await areaDeptService.deleteArea(areaDept.id);
         addNotification({
           type: 'success',
           message: 'Centro de costo eliminado exitosamente'

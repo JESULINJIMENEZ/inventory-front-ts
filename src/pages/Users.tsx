@@ -8,6 +8,7 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorBoundaryFallback } from '../components/common/ErrorBoundaryFallback';
 import { EmptyState } from '../components/common/EmptyState';
 import { useNotification } from '../contexts/NotificationContext';
+import { transformArrayForDisplay } from '../utils/displayTransform';
 import { Plus, Edit, Trash2, User as UserIcon, Users as UsersIcon, Upload, Download, FileText, Eye, Search } from 'lucide-react';
 
 export const Users: React.FC = () => {
@@ -60,7 +61,7 @@ export const Users: React.FC = () => {
       });
       
       console.log('Users response:', response);
-      setUsers(response.data);
+      setUsers(transformArrayForDisplay(response.data));
       setTotalPages(response.totalPages);
       setTotal(response.total);
       setCurrentPage(response.currentPage);
@@ -331,8 +332,8 @@ export const Users: React.FC = () => {
         password: '', // La contraseña se deja vacía para edición
         dni: user.dni,
         phone: user.phone,
-        role: user.role,
-        status: user.status,
+        role: user.role === 'administrador' ? 'admin' : user.role === 'empleado' ? 'employee' : user.role,
+        status: user.status === 'activo' ? 'active' : user.status === 'inactivo' ? 'inactive' : user.status,
         cost_center_id: user.cost_center_id?.toString() || '',
         AreaDept: typeof user.AreaDept === 'object' ? user.AreaDept : null
       });

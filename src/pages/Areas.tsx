@@ -8,6 +8,7 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorBoundaryFallback } from '../components/common/ErrorBoundaryFallback';
 import { EmptyState } from '../components/common/EmptyState';
 import { useNotification } from '../contexts/NotificationContext';
+import { transformArrayForDisplay, transformForDisplay } from '../utils/displayTransform';
 import { Plus, Edit, Trash2, Building2, User as UserIcon, Monitor, ChevronLeft, ChevronRight, Search, Users } from 'lucide-react';
 
 export const Areas: React.FC = () => {
@@ -39,8 +40,9 @@ export const Areas: React.FC = () => {
       const response = await areaDeptService.getAreas(searchParams);
       console.log('Areas response:', response);
       
-      setAreas(response);
-      setFilteredAreas(response);
+      const transformedData = transformArrayForDisplay(response);
+      setAreas(transformedData);
+      setFilteredAreas(transformedData);
     } catch (error: any) {
       console.error('Error fetching areas:', error);
       setError(error.response?.data?.error || 'Error al cargar áreas/departamentos');

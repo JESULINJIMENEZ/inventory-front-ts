@@ -15,6 +15,7 @@ import { ActivityLogs } from './pages/ActivityLogs';
 import { DeviceMovements } from './pages/DeviceMovements';
 import { CostCenter } from './pages/CostCenter';
 import { Areas } from './pages/Areas';
+import { RetiredDevices } from './pages/RetiredDevices';
 import { useAuth } from './contexts/AuthContext';
 
 const AppContent: React.FC = () => {
@@ -50,7 +51,7 @@ const AppContent: React.FC = () => {
         <Route
           path="/users"
           element={
-            <ProtectedRoute requireAdmin>
+            <ProtectedRoute>
               <Layout>
                 <Users />
               </Layout>
@@ -133,6 +134,16 @@ const AppContent: React.FC = () => {
             <ProtectedRoute>
               <Layout>
                 <Areas />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/retired-devices"
+          element={
+            <ProtectedRoute requireAdmin>
+              <Layout>
+                <RetiredDevices />
               </Layout>
             </ProtectedRoute>
           }
