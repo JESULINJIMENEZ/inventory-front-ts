@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Device, DeviceType, DeviceWithUser } from '../types';
+import { Device, DeviceType, DeviceWithUser, DeviceTypeRequiredFields } from '../types';
 import { deviceService } from '../services/deviceService';
 import { deviceTypeService } from '../services/deviceTypeService';
+import { validateDeviceSpecificFields } from '../utils/deviceValidation';
 import { Table } from '../components/common/Table';
 import { SearchInput } from '../components/common/SearchInput';
 import { Modal } from '../components/common/Modal';
@@ -10,11 +11,12 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorBoundaryFallback } from '../components/common/ErrorBoundaryFallback';
 import { EmptyState } from '../components/common/EmptyState';
 import { useNotification } from '../contexts/NotificationContext';
-import { Plus, Edit, Trash2, Monitor, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, Monitor, CheckCircle, XCircle, Eye, HardDrive, Cpu } from 'lucide-react';
 
 export const Devices: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
   const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([]);
+  const [requiredFields, setRequiredFields] = useState<DeviceTypeRequiredFields | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -35,9 +37,42 @@ export const Devices: React.FC = () => {
     serial_number: '',
     status: true,
     description: '',
-    plate_device: ''
+    plate_device: '',
+    // Campos específicos
+    storage: '',
+    ram: '',
+    processor: '',
+    dvr_storage: ''
   });
   const { addNotification } = useNotification();
+
+  const loadRequiredFields = async (typeDeviceId: number) => {
+    if (typeDeviceId <= 0) {
+      setRequiredFields(null);
+      return;
+    }
+    
+    try {
+      const fields = await deviceService.getDeviceTypeRequiredFields(typeDeviceId);
+      setRequiredFields(fields);
+    } catch (error: any) {
+      console.error('Error loading required fields:', error);
+      // No mostrar error al usuario, los campos específicos son opcionales
+      setRequiredFields(null);
+    }
+  };
+
+  const validateSpecificFields = (): string[] => {
+    if (!requiredFields || requiredFields.required_fields.length === 0) return [];
+    
+    const validation = validateDeviceSpecificFields(formData, requiredFields.required_fields);
+    return validation.errors;
+  };
+
+  const handleTypeChange = (typeDeviceId: number) => {
+    setFormData({ ...formData, type_device_id: typeDeviceId });
+    loadRequiredFields(typeDeviceId);
+  };
 
   const fetchDevices = async (page = 1, search = '', status?: boolean) => {
     try {
@@ -121,15 +156,35 @@ export const Devices: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar campos específicos
+    const validationErrors = validateSpecificFields();
+    if (validationErrors.length > 0) {
+      addNotification({
+        type: 'error',
+        message: `Campos específicos faltantes: ${validationErrors.join(', ')}`
+      });
+      return;
+    }
+    
     try {
+      // Preparar datos del dispositivo, excluyendo campos específicos vacíos
+      const deviceData = { ...formData };
+      
+      // Limpiar campos específicos vacíos para evitar enviar strings vacías
+      if (!deviceData.storage?.trim()) delete (deviceData as any).storage;
+      if (!deviceData.ram?.trim()) delete (deviceData as any).ram;
+      if (!deviceData.processor?.trim()) delete (deviceData as any).processor;
+      if (!deviceData.dvr_storage?.trim()) delete (deviceData as any).dvr_storage;
+      
       if (editingDevice) {
-        await deviceService.updateDevice(editingDevice.id, formData);
+        await deviceService.updateDevice(editingDevice.id, deviceData);
         addNotification({
           type: 'success',
           message: 'Dispositivo actualizado exitosamente'
         });
       } else {
-        await deviceService.createDevice(formData);
+        await deviceService.createDevice(deviceData);
         addNotification({
           type: 'success',
           message: 'Dispositivo creado exitosamente'
@@ -137,6 +192,7 @@ export const Devices: React.FC = () => {
       }
       setIsModalOpen(false);
       setEditingDevice(null);
+      setRequiredFields(null);
       resetForm();
       fetchDevices(currentPage, searchQuery, statusFilter);
     } catch (error: any) {
@@ -187,7 +243,11 @@ export const Devices: React.FC = () => {
       serial_number: '',
       status: true,
       description: '',
-      plate_device: ''
+      plate_device: '',
+      storage: '',
+      ram: '',
+      processor: '',
+      dvr_storage: ''
     });
   };
 
@@ -202,11 +262,20 @@ export const Devices: React.FC = () => {
         serial_number: device.serial_number,
         status: device.status,
         description: device.description || '',
-        plate_device: device.plate_device || ''
+        plate_device: device.plate_device || '',
+        storage: device.storage || '',
+        ram: device.ram || '',
+        processor: device.processor || '',
+        dvr_storage: device.dvr_storage || ''
       });
+      // Cargar campos requeridos para el tipo de dispositivo
+      if (device.type_device_id > 0) {
+        loadRequiredFields(device.type_device_id);
+      }
     } else {
       setEditingDevice(null);
       resetForm();
+      setRequiredFields(null);
     }
     setIsModalOpen(true);
   };
@@ -226,6 +295,40 @@ export const Devices: React.FC = () => {
     { key: 'model', label: 'Modelo' },
     { key: 'serial_number', label: 'Número de Serie' },
     { key: 'plate_device', label: 'Placa' },
+    {
+      key: 'specifications',
+      label: 'Especificaciones',
+      render: (device: Device) => (
+        <div className="space-y-1">
+          {device.storage && (
+            <div className="flex items-center text-xs text-gray-600">
+              <HardDrive className="h-3 w-3 mr-1" />
+              <span>{device.storage}</span>
+            </div>
+          )}
+          {device.ram && (
+            <div className="flex items-center text-xs text-gray-600">
+              <Monitor className="h-3 w-3 mr-1" />
+              <span>{device.ram}</span>
+            </div>
+          )}
+          {device.processor && (
+            <div className="flex items-center text-xs text-gray-600">
+              <Cpu className="h-3 w-3 mr-1" />
+              <span className="truncate max-w-24" title={device.processor}>
+                {device.processor}
+              </span>
+            </div>
+          )}
+          {device.dvr_storage && (
+            <div className="flex items-center text-xs text-gray-600">
+              <HardDrive className="h-3 w-3 mr-1" />
+              <span>DVR: {device.dvr_storage}</span>
+            </div>
+          )}
+        </div>
+      )
+    },
     {
       key: 'status',
       label: 'Estado',
@@ -414,7 +517,7 @@ export const Devices: React.FC = () => {
               </label>
               <select
                 value={formData.type_device_id}
-                onChange={(e) => setFormData({ ...formData, type_device_id: parseInt(e.target.value) })}
+                onChange={(e) => handleTypeChange(parseInt(e.target.value))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               >
@@ -504,6 +607,93 @@ export const Devices: React.FC = () => {
               placeholder="Placa o código del dispositivo (opcional)"
             />
           </div>
+
+          {/* Campos específicos según el tipo de dispositivo */}
+          {requiredFields && requiredFields.required_fields.length > 0 && (
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Monitor className="h-5 w-5 mr-2 text-blue-600" />
+                Especificaciones Técnicas
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {requiredFields.required_fields.includes('storage') && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {requiredFields.fields_info.storage.label} *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.storage}
+                      onChange={(e) => setFormData({ ...formData, storage: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={requiredFields.fields_info.storage.example}
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {requiredFields.fields_info.storage.description}
+                    </p>
+                  </div>
+                )}
+                
+                {requiredFields.required_fields.includes('ram') && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {requiredFields.fields_info.ram.label} *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.ram}
+                      onChange={(e) => setFormData({ ...formData, ram: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={requiredFields.fields_info.ram.example}
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {requiredFields.fields_info.ram.description}
+                    </p>
+                  </div>
+                )}
+                
+                {requiredFields.required_fields.includes('processor') && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {requiredFields.fields_info.processor.label} *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.processor}
+                      onChange={(e) => setFormData({ ...formData, processor: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={requiredFields.fields_info.processor.example}
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {requiredFields.fields_info.processor.description}
+                    </p>
+                  </div>
+                )}
+                
+                {requiredFields.required_fields.includes('dvr_storage') && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {requiredFields.fields_info.dvr_storage.label} *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.dvr_storage}
+                      onChange={(e) => setFormData({ ...formData, dvr_storage: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={requiredFields.fields_info.dvr_storage.example}
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {requiredFields.fields_info.dvr_storage.description}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -606,6 +796,54 @@ export const Devices: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* Especificaciones Técnicas */}
+            {(viewingDevice.storage || viewingDevice.ram || viewingDevice.processor || viewingDevice.dvr_storage) && (
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                  <Cpu className="h-5 w-5 mr-2 text-purple-600" />
+                  Especificaciones Técnicas
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {viewingDevice.storage && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center">
+                        <HardDrive className="h-4 w-4 mr-1" />
+                        Almacenamiento:
+                      </label>
+                      <p className="text-gray-900 font-medium">{viewingDevice.storage}</p>
+                    </div>
+                  )}
+                  {viewingDevice.ram && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center">
+                        <Monitor className="h-4 w-4 mr-1" />
+                        Memoria RAM:
+                      </label>
+                      <p className="text-gray-900 font-medium">{viewingDevice.ram}</p>
+                    </div>
+                  )}
+                  {viewingDevice.processor && (
+                    <div className="md:col-span-2">
+                      <label className="text-sm font-medium text-gray-600 flex items-center">
+                        <Cpu className="h-4 w-4 mr-1" />
+                        Procesador:
+                      </label>
+                      <p className="text-gray-900 font-medium">{viewingDevice.processor}</p>
+                    </div>
+                  )}
+                  {viewingDevice.dvr_storage && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center">
+                        <HardDrive className="h-4 w-4 mr-1" />
+                        Almacenamiento DVR:
+                      </label>
+                      <p className="text-gray-900 font-medium">{viewingDevice.dvr_storage}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Información del Usuario Asignado */}
             {viewingDevice.assigned_user && (

@@ -1,5 +1,5 @@
 import { api } from './api';
-import { Device, PaginatedResponse, DeviceWithUser } from '../types';
+import { Device, PaginatedResponse, DeviceWithUser, DeviceTypeRequiredFields } from '../types';
 
 export const deviceService = {
   getDevices: async (params?: {
@@ -24,6 +24,11 @@ export const deviceService = {
 
   getDeviceWithUser: async (id: number): Promise<{ device: DeviceWithUser }> => {
     const response = await api.get(`/admin/devices/${id}/with-user`);
+    return response.data;
+  },
+
+  getDeviceTypeRequiredFields: async (typeDeviceId: number): Promise<DeviceTypeRequiredFields> => {
+    const response = await api.get(`/admin/devices/type-devices/${typeDeviceId}/required-fields`);
     return response.data;
   },
 

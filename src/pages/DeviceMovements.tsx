@@ -96,7 +96,7 @@ export const DeviceMovements: React.FC = () => {
       render: (movement: DeviceMovement) => (
         <div className="flex items-center">
           <Clock className="h-4 w-4 mr-2 text-gray-500" />
-          <span>{new Date(movement.timestamp).toLocaleString()}</span>
+          <span>{new Date(movement.createdAt).toLocaleString()}</span>
         </div>
       ),
     },
@@ -105,7 +105,7 @@ export const DeviceMovements: React.FC = () => {
       label: 'Notas',
       render: (movement: DeviceMovement) => (
         <span className="text-sm text-gray-600">
-          {movement.notes || 'Sin notas'}
+          {movement.description || 'Sin descripción'}
         </span>
       ),
     },

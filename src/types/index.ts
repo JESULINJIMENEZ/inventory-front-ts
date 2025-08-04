@@ -38,6 +38,12 @@ export interface Device {
   createdAt?: string;
   updatedAt?: string;
   DeviceType?: DeviceType;
+  // Campos específicos para portátiles
+  storage?: string;
+  ram?: string;
+  processor?: string;
+  // Campos específicos para DVR
+  dvr_storage?: string;
 }
 
 export interface DeviceWithUser {
@@ -59,6 +65,12 @@ export interface DeviceWithUser {
     email: string;
     dni: string;
   };
+  // Campos específicos para portátiles
+  storage?: string;
+  ram?: string;
+  processor?: string;
+  // Campos específicos para DVR
+  dvr_storage?: string;
 }
 
 export interface DeviceType {
@@ -67,6 +79,18 @@ export interface DeviceType {
   description?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface DeviceTypeRequiredFields {
+  type_device_id: number;
+  required_fields: string[];
+  fields_info: {
+    [key: string]: {
+      label: string;
+      example: string;
+      description: string;
+    };
+  };
 }
 
 export interface Assignment {
@@ -101,10 +125,14 @@ export interface DeviceMovement {
   movement_type: 'assigned' | 'returned' | 'transferred';
   assignment_id: number;
   previous_user_id?: number;
-  timestamp: string;
-  notes?: string;
+  timestamp?: string; // Mantenemos para compatibilidad
+  createdAt: string; // Nuevo campo principal para fecha
+  updatedAt?: string;
+  notes?: string; // Mantenemos para compatibilidad
+  description?: string; // Nuevo campo principal para descripción
   User?: User;
   Device?: Device;
+  Assignment?: Assignment;
 }
 
 export interface DashboardData {
