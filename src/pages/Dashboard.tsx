@@ -128,28 +128,44 @@ export const Dashboard: React.FC = () => {
             Asignaciones por Mes
           </h3>
           <div className="space-y-3">
-            {charts.assignmentsByMonth.map((item) => (
-              <div key={item.month} className="flex items-center justify-between">
-                <div className="flex items-center min-w-0 flex-1">
-                  <Calendar className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
-                  <span className="text-sm text-gray-600 truncate">
-                    {new Date(item.month).toLocaleDateString('es-ES', { 
-                      month: 'long', 
-                      year: 'numeric' 
-                    })}
-                  </span>
-                </div>
-                <div className="flex items-center ml-3">
-                  <div className="w-16 sm:w-24 bg-gray-200 rounded-full h-2 mr-2 sm:mr-3">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full" 
-                      style={{ width: `${(item.count / 20) * 100}%` }}
-                    />
+            {(() => {
+              const maxCount = Math.max(...charts.assignmentsByMonth.map(item => item.count));
+              // Ordenar los datos por fecha para asegurar el orden correcto
+              const sortedAssignments = [...charts.assignmentsByMonth].sort((a, b) => {
+                return new Date(a.month).getTime() - new Date(b.month).getTime();
+              });
+              
+              return sortedAssignments.map((item) => {
+                // Procesar la fecha de manera más explícita
+                const [year, month] = item.month.split('-');
+                const monthNames = [
+                  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+                ];
+                const monthName = monthNames[parseInt(month) - 1];
+                const formattedDate = `${monthName} de ${year}`;
+                
+                return (
+                  <div key={item.month} className="flex items-center justify-between">
+                    <div className="flex items-center min-w-0 flex-1">
+                      <Calendar className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                      <span className="text-sm text-gray-600 truncate">
+                        {formattedDate}
+                      </span>
+                    </div>
+                    <div className="flex items-center ml-3">
+                      <div className="w-16 sm:w-24 bg-gray-200 rounded-full h-2 mr-2 sm:mr-3">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full" 
+                          style={{ width: `${maxCount > 0 ? (item.count / maxCount) * 100 : 0}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">{item.count}</span>
+                    </div>
                   </div>
-                  <span className="text-sm font-medium text-gray-900">{item.count}</span>
-                </div>
-              </div>
-            ))}
+                );
+              });
+            })()}
           </div>
         </div>
 
