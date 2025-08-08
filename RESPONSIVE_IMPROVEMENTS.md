@@ -58,6 +58,29 @@ Se han implementado mejoras significativas en el diseño responsive de toda la a
 - Tabla con columnas optimizadas para móviles
 - Información de estado condensada
 
+#### Users (Gestión de Usuarios)
+- Header responsive con botones y filtros reorganizados
+- Botones de "Descargar Plantilla", "Carga Masiva" y "Nuevo Usuario" adaptados
+- Filtros de estado con texto condicional para móviles
+- Controles de búsqueda y filtros optimizados
+
+#### CostCenter (Centros de Costo)
+- Header simplificado y responsive
+- Botón "Nuevo Centro de Costo" con texto abreviado en móviles
+- Espaciado y padding adaptativo
+
+#### DeviceTypes (Tipos de Dispositivos)  
+- Header con título e iconos escalables
+- Botones "Ver Activos/Inactivos" y "Nuevo Tipo" responsivos
+- Descripción adaptativa según el tamaño de pantalla
+- Layout que se reorganiza en pantallas pequeñas
+
+#### Areas (Gestión de Áreas/Departamentos)
+- Header con filtros y botones reorganizados responsivamente
+- Botones "Carga Masiva" y "Nuevo Centro" adaptados
+- Información de filtros mostrada como badges en móviles
+- Espaciado y organización optimizados
+
 #### LoginForm
 - Diseño centrado y responsivo
 - Campos de formulario con tamaño base para evitar zoom

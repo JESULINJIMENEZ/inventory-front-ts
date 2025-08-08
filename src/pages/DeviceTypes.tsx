@@ -217,24 +217,29 @@ export const DeviceTypes: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-            <Layers className="h-8 w-8 mr-3 text-blue-600" />
-            {showDeleted ? 'Tipos de Dispositivos Inactivos' : 'Tipos de Dispositivos Activos'}
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header responsive */}
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+        <div className="flex-1">
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 flex items-center">
+            <Layers className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 mr-2 sm:mr-3 text-blue-600 flex-shrink-0" />
+            <span className="min-w-0">
+              {showDeleted ? 'Tipos Inactivos' : 'Tipos de Dispositivos'}
+            </span>
           </h1>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
             {showDeleted 
-              ? 'Ver tipos de dispositivos que han sido desactivados del sistema'
-              : 'Gestiona los tipos de dispositivos activos en el sistema'
+              ? 'Tipos de dispositivos desactivados del sistema'
+              : 'Gestiona los tipos de dispositivos activos'
             }
           </p>
         </div>
-        <div className="flex space-x-3">
+        
+        {/* Botones de acción */}
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
           <button
             onClick={() => setShowDeleted(!showDeleted)}
-            className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+            className={`px-3 py-2 sm:px-4 rounded-lg transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base ${
               showDeleted 
                 ? 'bg-gray-600 text-white hover:bg-gray-700' 
                 : 'bg-red-600 text-white hover:bg-red-700'
@@ -242,29 +247,32 @@ export const DeviceTypes: React.FC = () => {
           >
             {showDeleted ? (
               <>
-                <ArrowLeft className="h-4 w-4" />
-                <span>Ver Activos</span>
+                <ArrowLeft className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline">Ver Activos</span>
+                <span className="sm:hidden">Activos</span>
               </>
             ) : (
               <>
-                <Archive className="h-4 w-4" />
-                <span>Ver Inactivos</span>
+                <Archive className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline">Ver Inactivos</span>
+                <span className="sm:hidden">Inactivos</span>
               </>
             )}
           </button>
           {!showDeleted && (
             <button
               onClick={() => openModal()}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              className="bg-blue-600 text-white px-3 py-2 sm:px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
             >
-              <Plus className="h-4 w-4" />
-              <span>Nuevo Tipo</span>
+              <Plus className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Nuevo Tipo</span>
+              <span className="sm:hidden">Nuevo</span>
             </button>
           )}
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}

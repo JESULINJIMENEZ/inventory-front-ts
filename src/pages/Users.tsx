@@ -463,81 +463,90 @@ export const Users: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header responsive */}
+      <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-3 sm:space-y-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
           
           {/* Filtro de usuarios activos */}
-          <div className="flex items-center space-x-2 ml-8">
-            <span className="text-sm text-gray-600">Mostrar:</span>
-            <button
-              onClick={() => setShowActiveOnly(false)}
-              className={`px-3 py-1 text-xs rounded-full border transition-colors ${
-                !showActiveOnly
-                  ? 'bg-blue-100 text-blue-800 border-blue-300'
-                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              Todos los usuarios
-            </button>
-            <button
-              onClick={() => setShowActiveOnly(true)}
-              className={`px-3 py-1 text-xs rounded-full border transition-colors ${
-                showActiveOnly
-                  ? 'bg-green-100 text-green-800 border-green-300'
-                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              Solo activos
-            </button>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-600 hidden sm:inline">Mostrar:</span>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setShowActiveOnly(false)}
+                className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-full border transition-colors ${
+                  !showActiveOnly
+                    ? 'bg-blue-100 text-blue-800 border-blue-300'
+                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <span className="hidden sm:inline">Todos los usuarios</span>
+                <span className="sm:hidden">Todos</span>
+              </button>
+              <button
+                onClick={() => setShowActiveOnly(true)}
+                className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-full border transition-colors ${
+                  showActiveOnly
+                    ? 'bg-green-100 text-green-800 border-green-300'
+                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <span className="hidden sm:inline">Solo activos</span>
+                <span className="sm:hidden">Activos</span>
+              </button>
+            </div>
           </div>
         </div>
         
-        <div className="flex space-x-3">
+        {/* Botones de acción */}
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
           <button
             onClick={handleDownloadTemplate}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+            className="bg-green-600 text-white px-3 py-2 sm:px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
           >
             <Download className="h-4 w-4" />
-            <span>Descargar Plantilla</span>
+            <span className="hidden sm:inline">Descargar Plantilla</span>
+            <span className="sm:hidden">Plantilla</span>
           </button>
           <button
             onClick={() => setIsBulkUploadModalOpen(true)}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
+            className="bg-purple-600 text-white px-3 py-2 sm:px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
           >
             <Upload className="h-4 w-4" />
-            <span>Carga Masiva</span>
+            <span className="hidden sm:inline">Carga Masiva</span>
+            <span className="sm:hidden">Subir</span>
           </button>
           <button
             onClick={() => openModal()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            className="bg-blue-600 text-white px-3 py-2 sm:px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
           >
             <Plus className="h-4 w-4" />
-            <span>Nuevo Usuario</span>
+            <span className="hidden sm:inline">Nuevo Usuario</span>
+            <span className="sm:hidden">Nuevo</span>
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex gap-2 mb-4">
+      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row gap-2 mb-4">
           <SearchInput
             value={searchInput}
             onChange={setSearchInput}
             onKeyPress={handleSearchKeyPress}
-            placeholder="Buscar usuarios por nombre, email, DNI... (Presiona Enter)"
+            placeholder="Buscar usuarios..."
             className="flex-1"
           />
           <button
             onClick={handleSearch}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base"
           >
             Buscar
           </button>
           {searchQuery && (
             <button
               onClick={handleClearSearch}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+              className="px-3 sm:px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors text-sm sm:text-base"
             >
               Limpiar
             </button>
@@ -546,7 +555,7 @@ export const Users: React.FC = () => {
 
         {/* Información de paginación */}
         {users.length > 0 && (
-          <div className="mb-4 text-sm text-gray-600">
+          <div className="mb-4 text-xs sm:text-sm text-gray-600">
             Mostrando {((currentPage - 1) * 10) + 1} - {Math.min(currentPage * 10, total)} de {total} usuarios
             {showActiveOnly && (
               <span className="ml-2 text-green-600">
