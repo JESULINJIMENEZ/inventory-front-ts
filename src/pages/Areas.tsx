@@ -8,12 +8,16 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorBoundaryFallback } from '../components/common/ErrorBoundaryFallback';
 import { EmptyState } from '../components/common/EmptyState';
 import { useNotification } from '../contexts/NotificationContext';
-import { transformArrayForDisplay, transformForDisplay } from '../utils/displayTransform';
-import { Plus, Edit, Trash2, Building2, User as UserIcon, Monitor, ChevronLeft, ChevronRight, Search, Users } from 'lucide-react';
+import { transformArrayForDisplay } from '../utils/displayTransform';
+import { Plus, Edit, Trash2, Building2, User as UserIcon, Monitor, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 
 export const Areas: React.FC = () => {
   const [areas, setAreas] = useState<AreaDept[]>([]);
   const [filteredAreas, setFilteredAreas] = useState<AreaDept[]>([]);
+  const [showActiveOnly, setShowActiveOnly] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,16 +35,17 @@ export const Areas: React.FC = () => {
   });
   const { addNotification } = useNotification();
 
-  const fetchAreas = async (searchParams?: { name?: string; cost_center?: string }) => {
+  const fetchAreas = async (searchParams?: { name?: string; cost_center?: string }, activeOnly = showActiveOnly) => {
     try {
       setIsLoading(true);
       setError(null);
-      console.log('Fetching areas...', searchParams);
       
-      const response = await areaDeptService.getAreas(searchParams);
-      console.log('Areas response:', response);
+      // Usar el servicio correcto dependiendo del filtro
+      const response = activeOnly 
+        ? await areaDeptService.getActiveAreas(searchParams)
+        : await areaDeptService.getAreas(searchParams);
       
-      const transformedData = transformArrayForDisplay(response);
+      const transformedData = transformArrayForDisplay(response.areaDepts);
       setAreas(transformedData);
       setFilteredAreas(transformedData);
     } catch (error: any) {
@@ -60,6 +65,11 @@ export const Areas: React.FC = () => {
   useEffect(() => {
     fetchAreas();
   }, []);
+
+  // Effect para manejar cambios en el filtro de centros activos
+  useEffect(() => {
+    fetchAreas(undefined, showActiveOnly);
+  }, [showActiveOnly]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -93,7 +103,7 @@ export const Areas: React.FC = () => {
       setIsModalOpen(false);
       setEditingArea(null);
       resetForm();
-      fetchAreas();
+      fetchAreas(undefined, showActiveOnly);
     } catch (error: any) {
       addNotification({
         type: 'error',
@@ -103,19 +113,29 @@ export const Areas: React.FC = () => {
   };
 
   const handleDelete = async (area: AreaDept) => {
-    if (window.confirm(`¿Estás seguro de que quieres eliminar "${area.name}"?`)) {
+    if (window.confirm(`¿Estás seguro de que quieres desactivar "${area.name}"? Esta acción no eliminará el centro de costo, solo lo desactivará.`)) {
       try {
-        await areaDeptService.deleteArea(area.id);
+        const response = await areaDeptService.deactivateArea(area.id);
         addNotification({
           type: 'success',
-          message: 'Área/Departamento eliminado exitosamente'
+          message: response.message || 'Centro de costo desactivado exitosamente'
         });
-        fetchAreas();
+        fetchAreas(undefined, showActiveOnly);
       } catch (error: any) {
-        addNotification({
-          type: 'error',
-          message: error.response?.data?.error || 'Error al eliminar área/departamento'
-        });
+        const errorMessage = error.response?.data?.error || 'Error al desactivar centro de costo';
+        
+        // Si tiene usuarios activos, mostrar mensaje específico
+        if (error.response?.data?.hasActiveUsers) {
+          addNotification({
+            type: 'warning',
+            message: errorMessage
+          });
+        } else {
+          addNotification({
+            type: 'error',
+            message: errorMessage
+          });
+        }
       }
     }
   };
@@ -205,6 +225,57 @@ export const Areas: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  // Funciones para carga masiva
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+        setSelectedFile(file);
+      } else {
+        addNotification({
+          type: 'error',
+          message: 'Solo se permiten archivos CSV'
+        });
+        event.target.value = '';
+      }
+    }
+  };
+
+  const handleBulkUpload = async () => {
+    if (!selectedFile) {
+      addNotification({
+        type: 'error',
+        message: 'Por favor selecciona un archivo CSV'
+      });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const result = await areaDeptService.bulkUpload(selectedFile);
+      
+      addNotification({
+        type: 'success',
+        message: `${result.message}: ${result.summary.successful} centros creados exitosamente${result.summary.errors > 0 ? `, ${result.summary.errors} errores` : ''}`
+      });
+
+      if (result.errors && result.errors.length > 0) {
+        console.log('Errores en la carga:', result.errors);
+      }
+
+      setIsBulkUploadModalOpen(false);
+      setSelectedFile(null);
+      fetchAreas(undefined, showActiveOnly);
+    } catch (error: any) {
+      addNotification({
+        type: 'error',
+        message: error.response?.data?.error || 'Error en la carga masiva'
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const columns = [
     {
       key: 'cost_center',
@@ -277,14 +348,51 @@ export const Areas: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Gestión de Áreas/Departamentos</h1>
-        <button
-          onClick={() => openModal()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Nueva Área</span>
-        </button>
+        <div className="flex items-center space-x-4">
+          <h1 className="text-2xl font-bold text-gray-900">Gestión de Centros de Costo</h1>
+          
+          {/* Filtro de centros activos */}
+          <div className="flex items-center space-x-2 ml-8">
+            <span className="text-sm text-gray-600">Mostrar:</span>
+            <button
+              onClick={() => setShowActiveOnly(false)}
+              className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                !showActiveOnly
+                  ? 'bg-blue-100 text-blue-800 border-blue-300'
+                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              Todos los centros
+            </button>
+            <button
+              onClick={() => setShowActiveOnly(true)}
+              className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                showActiveOnly
+                  ? 'bg-green-100 text-green-800 border-green-300'
+                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              Solo activos
+            </button>
+          </div>
+        </div>
+        
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setIsBulkUploadModalOpen(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+          >
+            <Building2 className="h-4 w-4" />
+            <span>Carga Masiva</span>
+          </button>
+          <button
+            onClick={() => openModal()}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Nuevo Centro</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow p-6">
@@ -297,7 +405,12 @@ export const Areas: React.FC = () => {
 
         {filteredAreas.length > 0 && (
           <div className="mb-4 text-sm text-gray-600">
-            Mostrando {filteredAreas.length} de {areas.length} áreas/departamentos
+            Mostrando {filteredAreas.length} de {areas.length} centros de costo
+            {showActiveOnly && (
+              <span className="ml-2 text-green-600">
+                (solo activos)
+              </span>
+            )}
             {searchQuery && (
               <span className="ml-2 text-blue-600">
                 (filtrado por "{searchQuery}")
@@ -398,6 +511,103 @@ export const Areas: React.FC = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal de Carga Masiva */}
+      <Modal
+        isOpen={isBulkUploadModalOpen}
+        onClose={() => {
+          setIsBulkUploadModalOpen(false);
+          setSelectedFile(null);
+        }}
+        title="Carga Masiva de Centros de Costo"
+      >
+        <div className="space-y-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <Building2 className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-medium text-blue-800">Formato del archivo CSV</h4>
+                <ul className="text-sm text-blue-700 mt-2 space-y-1">
+                  <li>• Separador: punto y coma (;)</li>
+                  <li>• Columnas: cost_center;name</li>
+                  <li>• Ejemplo: CC001;Recursos Humanos</li>
+                  <li>• No incluir encabezados</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Seleccionar archivo CSV
+            </label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">
+                  Arrastra y suelta tu archivo CSV aquí, o
+                </p>
+                <label className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors">
+                  <span>Seleccionar archivo</span>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                </label>
+                <p className="text-xs text-gray-500">
+                  Solo archivos CSV con separador punto y coma (;)
+                </p>
+              </div>
+            </div>
+            
+            {selectedFile && (
+              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Building2 className="h-4 w-4 text-green-600" />
+                  <span className="text-sm text-green-800 font-medium">
+                    {selectedFile.name}
+                  </span>
+                  <span className="text-xs text-green-600">
+                    ({(selectedFile.size / 1024).toFixed(1)} KB)
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setIsBulkUploadModalOpen(false);
+                setSelectedFile(null);
+              }}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleBulkUpload}
+              disabled={!selectedFile || isUploading}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+            >
+              {isUploading ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  <span>Cargando...</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4" />
+                  <span>Cargar Centros</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
       </Modal>
 
       {/* Modal de Vista de Área con Usuarios */}

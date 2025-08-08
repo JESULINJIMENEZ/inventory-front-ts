@@ -2,7 +2,7 @@
 
 ## Configuración Actual
 
-- **Backend URL**: http://192.168.2.50:3000
+- **Backend URL**: http://192.168.2.5100:3000
 - **Frontend Puerto**: 4173
 - **Gestor de Procesos**: PM2
 
@@ -74,7 +74,7 @@ pm2 delete inventory-frontend      # Eliminar proceso
 - Frontend (red local): http://[tu-ip]:4173
 
 ### Backend
-- API: http://192.168.2.50:3000
+- API: http://192.168.2.100:3000
 
 ## Logs
 

@@ -25,6 +25,11 @@ import {
 export const RetiredDevices: React.FC = () => {
   const [retiredDevices, setRetiredDevices] = useState<RetiredDevice[]>([]);
   const [availableDevices, setAvailableDevices] = useState<Device[]>([]);
+  const [availableDevicesInfo, setAvailableDevicesInfo] = useState<{
+    excluded?: { assigned_devices: number; retired_devices: number; total_excluded: number };
+    showing_all?: boolean;
+    total_shown?: number;
+  }>({});
   const [isLoadingAvailableDevices, setIsLoadingAvailableDevices] = useState(false);
   const [availableDevicesSearch, setAvailableDevicesSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -216,6 +221,13 @@ export const RetiredDevices: React.FC = () => {
       
       // Siempre reemplazar la lista completa ya que traemos todos los dispositivos
       setAvailableDevices(response.data);
+      
+      // Guardar información adicional de la respuesta
+      setAvailableDevicesInfo({
+        excluded: response.excluded,
+        showing_all: response.showing_all,
+        total_shown: response.total_shown
+      });
     } catch (error: any) {
       console.error('Error fetching available devices:', error);
       addNotification({
@@ -803,13 +815,24 @@ export const RetiredDevices: React.FC = () => {
               ))}
             </select>
             
-            {/* Información de paginación y botón para cargar más */}
+            {/* Información de dispositivos disponibles */}
             <div className="mt-2 flex items-center justify-between">
               <div className="text-xs text-gray-500">
                 {availableDevices.length === 0 ? (
                   "No hay dispositivos disponibles para dar de baja"
                 ) : (
-                  <>Mostrando {availableDevices.length} dispositivos disponibles</>
+                  <div>
+                    <div>Mostrando {availableDevices.length} dispositivos disponibles</div>
+                    {availableDevicesInfo.excluded && availableDevicesInfo.excluded.total_excluded > 0 && (
+                      <div className="text-xs text-amber-600 mt-1">
+                        Excluidos: {availableDevicesInfo.excluded.assigned_devices} asignados
+                        {availableDevicesInfo.excluded.retired_devices > 0 && 
+                          `, ${availableDevicesInfo.excluded.retired_devices} dados de baja`
+                        }
+                        {' '}(Total: {availableDevicesInfo.excluded.total_excluded})
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

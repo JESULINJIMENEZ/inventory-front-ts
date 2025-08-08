@@ -9,7 +9,7 @@ import { ErrorBoundaryFallback } from '../components/common/ErrorBoundaryFallbac
 import { EmptyState } from '../components/common/EmptyState';
 import { useNotification } from '../contexts/NotificationContext';
 import { transformArrayForDisplay } from '../utils/displayTransform';
-import { Plus, Edit, Trash2, Layers } from 'lucide-react';
+import { Plus, Edit, Power, PowerOff, Layers, Archive, ArrowLeft } from 'lucide-react';
 
 export const DeviceTypes: React.FC = () => {
   const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([]);
@@ -19,19 +19,22 @@ export const DeviceTypes: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDeviceType, setEditingDeviceType] = useState<DeviceType | null>(null);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: ''
   });
   const { addNotification } = useNotification();
 
-  const fetchDeviceTypes = async () => {
+  const fetchDeviceTypes = async (deleted: boolean = false) => {
     try {
       setIsLoading(true);
       setError(null);
-      console.log('Fetching device types...');
+      console.log(`Fetching ${deleted ? 'deleted' : 'active'} device types...`);
       
-      const response = await deviceTypeService.getDeviceTypes();
+      const response = deleted 
+        ? await deviceTypeService.getDeletedDeviceTypes()
+        : await deviceTypeService.getDeviceTypes();
       console.log('Device types response:', response);
       
       const transformedData = transformArrayForDisplay(response);
@@ -53,8 +56,8 @@ export const DeviceTypes: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchDeviceTypes();
-  }, []);
+    fetchDeviceTypes(showDeleted);
+  }, [showDeleted]);
 
   useEffect(() => {
     const filtered = deviceTypes.filter(deviceType =>
@@ -82,7 +85,7 @@ export const DeviceTypes: React.FC = () => {
       }
       setIsModalOpen(false);
       resetForm();
-      fetchDeviceTypes();
+      fetchDeviceTypes(showDeleted);
     } catch (error: any) {
       addNotification({
         type: 'error',
@@ -91,19 +94,22 @@ export const DeviceTypes: React.FC = () => {
     }
   };
 
-  const handleDelete = async (deviceType: DeviceType) => {
-    if (window.confirm(`¿Estás seguro de que quieres eliminar el tipo "${deviceType.name}"?`)) {
+  const handleToggleStatus = async (deviceType: DeviceType, newStatus: boolean) => {
+    const action = newStatus ? 'activar' : 'desactivar';
+    const actionPast = newStatus ? 'activado' : 'desactivado';
+    
+    if (window.confirm(`¿Estás seguro de que quieres ${action} el tipo "${deviceType.name}"?`)) {
       try {
-        await deviceTypeService.deleteDeviceType(deviceType.id);
+        await deviceTypeService.toggleDeviceTypeStatus(deviceType.id, newStatus);
         addNotification({
           type: 'success',
-          message: 'Tipo de dispositivo eliminado exitosamente'
+          message: `Tipo de dispositivo ${actionPast} exitosamente`
         });
-        fetchDeviceTypes();
+        fetchDeviceTypes(showDeleted);
       } catch (error: any) {
         addNotification({
           type: 'error',
-          message: error.response?.data?.message || 'Error al eliminar tipo de dispositivo'
+          message: error.response?.data?.message || `Error al ${action} tipo de dispositivo`
         });
       }
     }
@@ -138,6 +144,11 @@ export const DeviceTypes: React.FC = () => {
         <div className="flex items-center">
           <Layers className="h-4 w-4 mr-2 text-gray-500" />
           <span className="font-medium">{deviceType.name}</span>
+          {showDeleted && (
+            <span className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-700 rounded-full">
+              Inactivo
+            </span>
+          )}
         </div>
       )
     },
@@ -155,18 +166,35 @@ export const DeviceTypes: React.FC = () => {
       label: 'Acciones',
       render: (deviceType: DeviceType) => (
         <div className="flex space-x-2">
-          <button
-            onClick={() => openModal(deviceType)}
-            className="text-blue-600 hover:text-blue-800 transition-colors"
-          >
-            <Edit className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => handleDelete(deviceType)}
-            className="text-red-600 hover:text-red-800 transition-colors"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {showDeleted ? (
+            // Vista de inactivos: solo mostrar activar
+            <button
+              onClick={() => handleToggleStatus(deviceType, true)}
+              className="text-green-600 hover:text-green-800 transition-colors flex items-center space-x-1"
+              title="Activar tipo de dispositivo"
+            >
+              <Power className="h-4 w-4" />
+              <span className="text-sm">Activar</span>
+            </button>
+          ) : (
+            // Vista activa: mostrar editar y desactivar
+            <>
+              <button
+                onClick={() => openModal(deviceType)}
+                className="text-blue-600 hover:text-blue-800 transition-colors"
+                title="Editar tipo de dispositivo"
+              >
+                <Edit className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => handleToggleStatus(deviceType, false)}
+                className="text-orange-600 hover:text-orange-800 transition-colors"
+                title="Desactivar tipo de dispositivo"
+              >
+                <PowerOff className="h-4 w-4" />
+              </button>
+            </>
+          )}
         </div>
       )
     }
@@ -182,7 +210,7 @@ export const DeviceTypes: React.FC = () => {
         message={error}
         resetError={() => {
           setError(null);
-          fetchDeviceTypes();
+          fetchDeviceTypes(showDeleted);
         }}
       />
     );
@@ -194,19 +222,46 @@ export const DeviceTypes: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center">
             <Layers className="h-8 w-8 mr-3 text-blue-600" />
-            Tipos de Dispositivos
+            {showDeleted ? 'Tipos de Dispositivos Inactivos' : 'Tipos de Dispositivos Activos'}
           </h1>
           <p className="mt-2 text-gray-600">
-            Gestiona los tipos de dispositivos disponibles en el sistema
+            {showDeleted 
+              ? 'Ver tipos de dispositivos que han sido desactivados del sistema'
+              : 'Gestiona los tipos de dispositivos activos en el sistema'
+            }
           </p>
         </div>
-        <button
-          onClick={() => openModal()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Nuevo Tipo</span>
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setShowDeleted(!showDeleted)}
+            className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+              showDeleted 
+                ? 'bg-gray-600 text-white hover:bg-gray-700' 
+                : 'bg-red-600 text-white hover:bg-red-700'
+            }`}
+          >
+            {showDeleted ? (
+              <>
+                <ArrowLeft className="h-4 w-4" />
+                <span>Ver Activos</span>
+              </>
+            ) : (
+              <>
+                <Archive className="h-4 w-4" />
+                <span>Ver Inactivos</span>
+              </>
+            )}
+          </button>
+          {!showDeleted && (
+            <button
+              onClick={() => openModal()}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Nuevo Tipo</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow p-6">
@@ -224,20 +279,28 @@ export const DeviceTypes: React.FC = () => {
           emptyMessage={
             searchQuery 
               ? `No se encontraron tipos que coincidan con "${searchQuery}"`
-              : "No hay tipos de dispositivos registrados"
+              : showDeleted 
+                ? "No hay tipos de dispositivos inactivos"
+                : "No hay tipos de dispositivos registrados"
           }
           emptyComponent={
             !searchQuery ? (
               <EmptyState
-                title="No hay tipos de dispositivos"
-                description="Comienza agregando el primer tipo de dispositivo al sistema"
+                title={showDeleted ? "No hay tipos inactivos" : "No hay tipos de dispositivos"}
+                description={
+                  showDeleted 
+                    ? "No se han desactivado tipos de dispositivos del sistema"
+                    : "Comienza agregando el primer tipo de dispositivo al sistema"
+                }
                 icon={
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Layers className="w-8 h-8 text-blue-600" />
+                  <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                    showDeleted ? 'bg-red-100' : 'bg-blue-100'
+                  }`}>
+                    <Layers className={`w-8 h-8 ${showDeleted ? 'text-red-600' : 'text-blue-600'}`} />
                   </div>
                 }
-                actionLabel="Crear primer tipo"
-                onAction={() => openModal()}
+                actionLabel={showDeleted ? undefined : "Crear primer tipo"}
+                onAction={showDeleted ? undefined : () => openModal()}
               />
             ) : undefined
           }
@@ -245,56 +308,58 @@ export const DeviceTypes: React.FC = () => {
       </div>
 
       {/* Device Type Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={editingDeviceType ? 'Editar Tipo de Dispositivo' : 'Crear Tipo de Dispositivo'}
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre *
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Ej: Laptop, Desktop, Monitor..."
-              required
-            />
-          </div>
+      {!showDeleted && (
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title={editingDeviceType ? 'Editar Tipo de Dispositivo' : 'Crear Tipo de Dispositivo'}
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre *
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Ej: Laptop, Desktop, Monitor..."
+                required
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Descripción
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Descripción del tipo de dispositivo..."
-              rows={3}
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Descripción
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Descripción del tipo de dispositivo..."
+                rows={3}
+              />
+            </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              {editingDeviceType ? 'Actualizar' : 'Crear'}
-            </button>
-          </div>
-        </form>
-      </Modal>
+            <div className="flex justify-end space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                {editingDeviceType ? 'Actualizar' : 'Crear'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 };

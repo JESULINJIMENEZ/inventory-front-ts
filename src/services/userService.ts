@@ -1,7 +1,8 @@
 import { api } from './api';
-import { User, PaginatedResponse, CreateUserRequest, UpdateUserRequest, AreaDept } from '../types';
+import { User, CreateUserRequest, UpdateUserRequest, AreaDept } from '../types';
 
 export const userService = {
+  // Ver todos los usuarios (activos e inactivos)
   async getUsers(params?: { page?: number; limit?: number; search?: string }): Promise<{
     data: User[];
     total: number;
@@ -9,6 +10,24 @@ export const userService = {
     totalPages: number;
   }> {
     const response = await api.get('/admin/users', { params });
+
+    // Adaptar la respuesta del backend a la estructura esperada por el frontend
+    return {
+      data: response.data.users,
+      total: response.data.pagination.total,
+      currentPage: response.data.pagination.page,
+      totalPages: response.data.pagination.totalPages
+    };
+  },
+
+  // Ver solo usuarios activos
+  async getActiveUsers(params?: { page?: number; limit?: number; search?: string }): Promise<{
+    data: User[];
+    total: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    const response = await api.get('/admin/users/active', { params });
 
     // Adaptar la respuesta del backend a la estructura esperada por el frontend
     return {

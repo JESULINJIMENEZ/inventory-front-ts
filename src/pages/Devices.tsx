@@ -83,7 +83,7 @@ export const Devices: React.FC = () => {
     }
     
     try {
-      const fields = await deviceService.getDeviceTypeRequiredFields(typeDeviceId);
+      const fields = await deviceTypeService.getRequiredFields(typeDeviceId);
       setRequiredFields(fields);
     } catch (error: any) {
       console.error('Error loading required fields:', error);
@@ -131,26 +131,13 @@ export const Devices: React.FC = () => {
       setError(null);
       console.log('Fetching devices...', { page, search, status });
       
-      const params: any = {
-        page,
-        limit: 10
-      };
-      
-      if (search && search.trim()) {
-        params.search = search.trim();
-      }
-      
-      if (status !== undefined) {
-        params.status = status;
-      }
-      
-      const response = await deviceService.getDevices(params);
+      const response = await deviceService.getDevicesWithPagination(page, 10, search);
       
       console.log('Devices response:', response);
-      setDevices(transformArrayForDisplay(response.data));
-      setTotalPages(response.totalPages);
-      setTotal(response.total);
-      setCurrentPage(response.currentPage);
+      setDevices(transformArrayForDisplay(response.devices));
+      setTotalPages(response.pagination.totalPages);
+      setTotal(response.pagination.total);
+      setCurrentPage(response.pagination.page);
     } catch (error: any) {
       console.error('Error fetching devices:', error);
       const errorMessage = error.response?.data?.message || 'Error al cargar dispositivos';

@@ -25,6 +25,7 @@ export const Users: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [showActiveOnly, setShowActiveOnly] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [isAssignmentsModalOpen, setIsAssignmentsModalOpen] = useState(false);
@@ -48,17 +49,22 @@ export const Users: React.FC = () => {
   });
   const { addNotification } = useNotification();
 
-  const fetchUsers = async (page = 1, search = '') => {
+  const fetchUsers = async (page = 1, search = '', activeOnly = showActiveOnly) => {
     try {
       setIsLoading(true);
       setError(null);
-      console.log('Fetching users...', { page, search });
+      console.log('Fetching users...', { page, search, activeOnly });
       
-      const response = await userService.getUsers({
+      const params = {
         page,
         limit: 10,
         search: search || undefined
-      });
+      };
+
+      // Usar el servicio correcto dependiendo del filtro
+      const response = activeOnly 
+        ? await userService.getActiveUsers(params)
+        : await userService.getUsers(params);
       
       console.log('Users response:', response);
       setUsers(transformArrayForDisplay(response.data));
@@ -125,14 +131,22 @@ export const Users: React.FC = () => {
   useEffect(() => {
     // Solo ejecutar después de la carga inicial
     if (hasInitiallyLoaded) {
-      fetchUsers(currentPage, searchQuery);
+      fetchUsers(currentPage, searchQuery, showActiveOnly);
     }
   }, [currentPage, hasInitiallyLoaded]);
+
+  // Effect para manejar cambios en el filtro de usuarios activos
+  useEffect(() => {
+    if (hasInitiallyLoaded) {
+      setCurrentPage(1);
+      fetchUsers(1, searchQuery, showActiveOnly);
+    }
+  }, [showActiveOnly, hasInitiallyLoaded]);
 
   const handleSearch = () => {
     setCurrentPage(1); // Reset a la primera página cuando hace búsqueda
     setSearchQuery(searchInput);
-    fetchUsers(1, searchInput);
+    fetchUsers(1, searchInput, showActiveOnly);
   };
 
   const handleSearchKeyPress = (e: React.KeyboardEvent) => {
@@ -145,7 +159,7 @@ export const Users: React.FC = () => {
     setSearchInput('');
     setSearchQuery('');
     setCurrentPage(1);
-    fetchUsers(1, '');
+    fetchUsers(1, '', showActiveOnly);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -176,7 +190,7 @@ export const Users: React.FC = () => {
       setIsModalOpen(false);
       setEditingUser(null);
       resetForm();
-      fetchUsers(currentPage, searchQuery);
+      fetchUsers(currentPage, searchQuery, showActiveOnly);
     } catch (error: any) {
       addNotification({
         type: 'error',
@@ -193,7 +207,7 @@ export const Users: React.FC = () => {
           type: 'success',
           message: 'Usuario eliminado exitosamente'
         });
-        fetchUsers(currentPage, searchQuery);
+        fetchUsers(currentPage, searchQuery, showActiveOnly);
       } catch (error: any) {
         addNotification({
           type: 'error',
@@ -291,7 +305,7 @@ export const Users: React.FC = () => {
 
       setIsBulkUploadModalOpen(false);
       setSelectedFile(null);
-      fetchUsers(currentPage, searchQuery);
+      fetchUsers(currentPage, searchQuery, showActiveOnly);
     } catch (error: any) {
       addNotification({
         type: 'error',
@@ -443,7 +457,7 @@ export const Users: React.FC = () => {
     return (
       <ErrorBoundaryFallback
         message={error}
-        resetError={() => fetchUsers(currentPage, searchQuery)}
+        resetError={() => fetchUsers(currentPage, searchQuery, showActiveOnly)}
       />
     );
   }
@@ -451,7 +465,35 @@ export const Users: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
+        <div className="flex items-center space-x-4">
+          <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
+          
+          {/* Filtro de usuarios activos */}
+          <div className="flex items-center space-x-2 ml-8">
+            <span className="text-sm text-gray-600">Mostrar:</span>
+            <button
+              onClick={() => setShowActiveOnly(false)}
+              className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                !showActiveOnly
+                  ? 'bg-blue-100 text-blue-800 border-blue-300'
+                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              Todos los usuarios
+            </button>
+            <button
+              onClick={() => setShowActiveOnly(true)}
+              className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                showActiveOnly
+                  ? 'bg-green-100 text-green-800 border-green-300'
+                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              Solo activos
+            </button>
+          </div>
+        </div>
+        
         <div className="flex space-x-3">
           <button
             onClick={handleDownloadTemplate}
@@ -506,6 +548,11 @@ export const Users: React.FC = () => {
         {users.length > 0 && (
           <div className="mb-4 text-sm text-gray-600">
             Mostrando {((currentPage - 1) * 10) + 1} - {Math.min(currentPage * 10, total)} de {total} usuarios
+            {showActiveOnly && (
+              <span className="ml-2 text-green-600">
+                (solo activos)
+              </span>
+            )}
             {searchQuery && (
               <span className="ml-2 text-blue-600">
                 (filtrado por "{searchQuery}")

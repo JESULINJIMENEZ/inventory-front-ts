@@ -103,10 +103,12 @@ export const Assignments: React.FC = () => {
   const fetchDevices = async () => {
     try {
       console.log('Fetching devices for assignments...');
-      const response = await deviceService.getDevices({ limit: 100, status: true });
+      const response = await deviceService.getDevicesWithPagination(1, 100);
       console.log('Devices for assignments response:', response);
-      setDevices(response.data);
-      setFilteredDevices(response.data);
+      // Filtrar solo dispositivos disponibles (status = true)
+      const availableDevices = response.devices.filter(device => device.status === true);
+      setDevices(availableDevices);
+      setFilteredDevices(availableDevices);
     } catch (error: any) {
       console.error('Error fetching devices for assignments:', error);
       addNotification({
@@ -145,13 +147,10 @@ export const Assignments: React.FC = () => {
     }
     
     try {
-      const response = await deviceService.getDevices({ 
-        page: 1, 
-        limit: 10, 
-        status: true, 
-        search: searchTerm 
-      });
-      setFilteredDevices(response.data);
+      const response = await deviceService.getDevicesWithPagination(1, 10, searchTerm);
+      // Filtrar solo dispositivos disponibles
+      const availableDevices = response.devices.filter(device => device.status === true);
+      setFilteredDevices(availableDevices);
     } catch (error: any) {
       console.error('Error searching devices:', error);
       addNotification({
