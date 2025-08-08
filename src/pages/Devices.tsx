@@ -27,9 +27,16 @@ export const Devices: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isRetireModalOpen, setIsRetireModalOpen] = useState(false);
   const [viewingDevice, setViewingDevice] = useState<DeviceWithUser | null>(null);
+  const [retiringDevice, setRetiringDevice] = useState<Device | null>(null);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
+  const [retireData, setRetireData] = useState({
+    reason: '',
+    notes: '',
+    status: 'retired' as 'retired' | 'disposed'
+  });
   const [formData, setFormData] = useState({
     name: '',
     type_device_id: 0,
@@ -249,20 +256,54 @@ export const Devices: React.FC = () => {
   };
 
   const handleDelete = async (device: Device) => {
-    if (window.confirm(`¿Estás seguro de que quieres eliminar ${device.name}?`)) {
-      try {
-        await deviceService.deleteDevice(device.id);
-        addNotification({
-          type: 'success',
-          message: 'Dispositivo eliminado exitosamente'
-        });
-        fetchDevices(currentPage, searchQuery, statusFilter);
-      } catch (error: any) {
-        addNotification({
-          type: 'error',
-          message: 'Error al eliminar dispositivo'
-        });
-      }
+    setRetiringDevice(device);
+    setIsRetireModalOpen(true);
+    setRetireData({
+      reason: '',
+      notes: '',
+      status: 'retired'
+    });
+  };
+
+  const handleRetireDevice = async () => {
+    if (!retiringDevice) return;
+
+    if (!retireData.reason.trim()) {
+      addNotification({
+        type: 'error',
+        message: 'La razón del retiro es obligatoria'
+      });
+      return;
+    }
+
+    if (retireData.reason.length < 5 || retireData.reason.length > 255) {
+      addNotification({
+        type: 'error',
+        message: 'La razón debe tener entre 5 y 255 caracteres'
+      });
+      return;
+    }
+
+    try {
+      await deviceService.retireDevice(
+        retiringDevice.id, 
+        retireData.reason, 
+        retireData.notes || undefined, 
+        retireData.status
+      );
+      addNotification({
+        type: 'success',
+        message: `Dispositivo ${retiringDevice.name} dado de baja exitosamente`
+      });
+      setIsRetireModalOpen(false);
+      setRetiringDevice(null);
+      setRetireData({ reason: '', notes: '', status: 'retired' });
+      fetchDevices(currentPage, searchQuery, statusFilter);
+    } catch (error: any) {
+      addNotification({
+        type: 'error',
+        message: error.response?.data?.error || error.message || 'Error al dar de baja el dispositivo'
+      });
     }
   };
 
@@ -480,7 +521,7 @@ export const Devices: React.FC = () => {
           <button
             onClick={() => handleDelete(device)}
             className="text-red-600 hover:text-red-800 p-1"
-            title="Eliminar dispositivo"
+            title="Dar de baja dispositivo"
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -1113,6 +1154,118 @@ export const Devices: React.FC = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Modal de Retiro de Dispositivo */}
+      <Modal
+        isOpen={isRetireModalOpen}
+        onClose={() => {
+          setIsRetireModalOpen(false);
+          setRetiringDevice(null);
+          setRetireData({ reason: '', notes: '', status: 'retired' });
+        }}
+        title="Dar de Baja Dispositivo"
+      >
+        <div className="space-y-4">
+          {retiringDevice && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <Monitor className="h-8 w-8 text-yellow-600" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-medium text-gray-900">
+                    {retiringDevice.name}
+                  </h4>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {retiringDevice.brand} {retiringDevice.model} - S/N: {retiringDevice.serial_number}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <Trash2 className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="text-sm font-medium text-red-800">¡Atención!</h4>
+                <p className="text-sm text-red-700 mt-1">
+                  Esta acción dará de baja el dispositivo. El dispositivo no se eliminará, pero se marcará como retirado.
+                  Asegúrate de que el dispositivo no esté asignado a ningún usuario antes de continuar.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Razón del retiro <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={retireData.reason}
+              onChange={(e) => setRetireData({ ...retireData, reason: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={3}
+              required
+              placeholder="Describe la razón del retiro (mínimo 5 caracteres)..."
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Mínimo 5 caracteres, máximo 255 caracteres
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notas adicionales (opcional)
+            </label>
+            <textarea
+              value={retireData.notes}
+              onChange={(e) => setRetireData({ ...retireData, notes: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={2}
+              placeholder="Información adicional sobre el retiro..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Estado del dispositivo
+            </label>
+            <select
+              value={retireData.status}
+              onChange={(e) => setRetireData({ ...retireData, status: e.target.value as 'retired' | 'disposed' })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="retired">Retirado (almacenado)</option>
+              <option value="disposed">Desechado (eliminado físicamente)</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Retirado: El dispositivo se guarda para posible reutilización. Desechado: El dispositivo se elimina físicamente.
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4 border-t">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRetireModalOpen(false);
+                setRetiringDevice(null);
+                setRetireData({ reason: '', notes: '', status: 'retired' });
+              }}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleRetireDevice}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center space-x-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>Dar de Baja</span>
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

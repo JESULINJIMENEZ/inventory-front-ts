@@ -749,7 +749,7 @@ export const Areas: React.FC = () => {
                                     className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 text-green-800"
                                   >
                                     <Monitor className="h-3 w-3 mr-1" />
-                                    {/* {device.name} (S/N: {device.serialNumber}) */}
+                                    {device.device.name} (S/N: {device.device.serial_number})
                                   </span>
                                 ))}
                               </div>

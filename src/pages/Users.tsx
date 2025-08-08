@@ -317,7 +317,13 @@ export const Users: React.FC = () => {
   };
 
   const handleViewAssignments = async (user: User) => {
-    setSelectedUserForAssignments(user);
+    // Asegurar que el usuario tenga assignedDevices como array
+    const userWithDevices = {
+      ...user,
+      assignedDevices: user.assignedDevices || []
+    };
+    
+    setSelectedUserForAssignments(userWithDevices);
     setIsAssignmentsModalOpen(true);
     
     // Si el usuario no tiene equipos asignados cargados, obtenerlos
@@ -325,7 +331,11 @@ export const Users: React.FC = () => {
       setIsLoadingAssignments(true);
       try {
         const userWithAssignments = await userService.getUserWithAssignments(user.id);
-        setSelectedUserForAssignments(userWithAssignments);
+        // Asegurar que assignedDevices sea siempre un array
+        setSelectedUserForAssignments({
+          ...userWithAssignments,
+          assignedDevices: userWithAssignments.assignedDevices || []
+        });
       } catch (error: any) {
         addNotification({
           type: 'error',
@@ -368,23 +378,33 @@ export const Users: React.FC = () => {
       label: 'Nombre',
       render: (user: User) => (
         <div className="flex items-center">
-          <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
-          <span className="font-medium">{user.name}</span>
+          <UserIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-2 flex-shrink-0" />
+          <div className="min-w-0">
+            <div className="font-medium text-sm sm:text-base truncate">{user.name}</div>
+            <div className="text-xs text-gray-500 sm:hidden truncate">
+              {user.dni}
+            </div>
+          </div>
         </div>
       )
     },
-    { key: 'dni', label: 'DNI' },
+    { 
+      key: 'dni', 
+      label: 'DNI',
+      hideOnMobile: true
+    },
     {
       key: 'area',
       label: 'Centro de Costo',
+      hideOnMobile: true,
       render: (user: User) => (
         user.AreaDept ? (
-          <div className="text-sm">
-            <div className="font-medium">
+          <div className="text-sm max-w-32">
+            <div className="font-medium truncate">
               {typeof user.AreaDept === 'object' ? user.AreaDept.cost_center : user.AreaDept}
             </div>
             {typeof user.AreaDept === 'object' && (
-              <div className="text-gray-500">{user.AreaDept.name}</div>
+              <div className="text-gray-500 truncate">{user.AreaDept.name}</div>
             )}
           </div>
         ) : (
@@ -401,7 +421,12 @@ export const Users: React.FC = () => {
             ? 'bg-red-100 text-red-800' 
             : 'bg-blue-100 text-blue-800'
         }`}>
-          {user.role === 'admin' ? 'Administrador' : 'Empleado'}
+          <span className="hidden sm:inline">
+            {user.role === 'admin' ? 'Administrador' : 'Empleado'}
+          </span>
+          <span className="sm:hidden">
+            {user.role === 'admin' ? 'Admin' : 'Emp'}
+          </span>
         </span>
       )
     },
@@ -414,7 +439,12 @@ export const Users: React.FC = () => {
             ? 'bg-green-100 text-green-800' 
             : 'bg-gray-100 text-gray-800'
         }`}>
-          {user.status === 'active' ? 'Activo' : 'Inactivo'}
+          <span className="hidden sm:inline">
+            {user.status === 'active' ? 'Activo' : 'Inactivo'}
+          </span>
+          <span className="sm:hidden">
+            {user.status === 'active' ? 'Act' : 'Inact'}
+          </span>
         </span>
       )
     },
@@ -422,24 +452,24 @@ export const Users: React.FC = () => {
       key: 'actions',
       label: 'Acciones',
       render: (user: User) => (
-        <div className="flex space-x-2">
+        <div className="flex space-x-1 sm:space-x-2">
           <button
             onClick={() => handleViewAssignments(user)}
-            className="text-green-600 hover:text-green-800"
+            className="text-green-600 hover:text-green-800 p-1"
             title="Ver equipos asignados"
           >
             <Eye className="h-4 w-4" />
           </button>
           <button
             onClick={() => openModal(user)}
-            className="text-blue-600 hover:text-blue-800"
+            className="text-blue-600 hover:text-blue-800 p-1"
             title="Editar usuario"
           >
             <Edit className="h-4 w-4" />
           </button>
           <button
             onClick={() => handleDelete(user)}
-            className="text-red-600 hover:text-red-800"
+            className="text-red-600 hover:text-red-800 p-1"
             title="Eliminar usuario"
           >
             <Trash2 className="h-4 w-4" />
@@ -725,7 +755,7 @@ export const Users: React.FC = () => {
               disabled={isLoadingAreas}
             >
               <option value="">Seleccionar centro de costo (opcional)</option>
-              {availableAreas.map((area) => (
+              {(availableAreas || []).map((area) => (
                 <option key={area.id} value={area.id}>
                   {area.cost_center} - {area.name}
                 </option>
@@ -951,25 +981,25 @@ export const Users: React.FC = () => {
                     Total de equipos asignados: {selectedUserForAssignments.assignedDevices.length}
                   </div>
                   
-                  {selectedUserForAssignments.assignedDevices.map((assignment, index) => (
-                    <div key={assignment.assignmentId} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  {(selectedUserForAssignments.assignedDevices || []).map((assignment, index) => (
+                    <div key={assignment.assignmentId} className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-gray-50">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-2">
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                              <span className="text-blue-600 font-medium text-sm">{index + 1}</span>
+                            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-blue-600 font-medium text-xs sm:text-sm">{index + 1}</span>
                             </div>
-                            <h4 className="font-medium text-gray-900">{assignment.device.name}</h4>
+                            <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">{assignment.device.name}</h4>
                           </div>
                           
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
                             <div>
                               <span className="text-gray-600">Marca:</span>
                               <span className="ml-2 font-medium">{assignment.device.brand}</span>
                             </div>
                             <div>
                               <span className="text-gray-600">Número de Serie:</span>
-                              <span className="ml-2 font-medium">{assignment.device.serial_number}</span>
+                              <span className="ml-2 font-medium break-all">{assignment.device.serial_number}</span>
                             </div>
                             <div>
                               <span className="text-gray-600">Modelo:</span>
@@ -980,7 +1010,7 @@ export const Users: React.FC = () => {
                               <span className="ml-2 font-medium">
                                 {new Date(assignment.assignedAt).toLocaleDateString('es-ES', {
                                   year: 'numeric',
-                                  month: 'long',
+                                  month: 'short',
                                   day: 'numeric',
                                   hour: '2-digit',
                                   minute: '2-digit'
@@ -988,9 +1018,9 @@ export const Users: React.FC = () => {
                               </span>
                             </div>
                             {assignment.notes && (
-                              <div className="md:col-span-2">
+                              <div className="lg:col-span-2">
                                 <span className="text-gray-600">Notas:</span>
-                                <span className="ml-2 font-medium">{assignment.notes}</span>
+                                <span className="ml-2 font-medium break-words">{assignment.notes}</span>
                               </div>
                             )}
                           </div>

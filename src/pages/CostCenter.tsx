@@ -36,7 +36,7 @@ export const CostCenter: React.FC = () => {
       }
       
       const response = await areaDeptService.getAreas(params);
-      setAreaDepts(transformArrayForDisplay(response));
+      setAreaDepts(transformArrayForDisplay(response.areaDepts));
     } catch (error: any) {
       console.error('Error fetching area depts:', error);
       setError(error.response?.data?.error || 'Error al cargar centros de costo');
@@ -93,7 +93,7 @@ export const CostCenter: React.FC = () => {
   const handleDelete = async (areaDept: AreaDept) => {
     if (window.confirm(`¿Estás seguro de que quieres eliminar el centro de costo "${areaDept.cost_center} - ${areaDept.name}"?`)) {
       try {
-        await areaDeptService.deleteArea(areaDept.id);
+        await areaDeptService.deactivateArea(areaDept.id);
         addNotification({
           type: 'success',
           message: 'Centro de costo eliminado exitosamente'
