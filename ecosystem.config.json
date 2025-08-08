@@ -11,7 +11,7 @@
       "max_memory_restart": "500M",
       "env": {
         "NODE_ENV": "production",
-        "VITE_API_BASE_URL": "http://192.168.2.100:3000",
+        "VITE_API_BASE_URL": "http://181.48.110.124:3000",
         "VITE_REQUEST_TIMEOUT": "10000"
       },
       "log_file": "/home/salvatorsdev/inventory-front-ts/logs/combined.log",

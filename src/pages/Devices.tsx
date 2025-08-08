@@ -337,44 +337,72 @@ export const Devices: React.FC = () => {
       label: 'Nombre',
       render: (device: Device) => (
         <div className="flex items-center">
-          <Monitor className="h-5 w-5 text-gray-400 mr-2" />
-          <span className="font-medium">{device.name}</span>
+          <Monitor className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-2 flex-shrink-0" />
+          <div className="min-w-0">
+            <div className="font-medium text-sm sm:text-base truncate">{device.name}</div>
+            <div className="text-xs text-gray-500 sm:hidden truncate">
+              {device.brand} {device.model}
+            </div>
+          </div>
         </div>
       )
     },
-    { key: 'brand', label: 'Marca' },
-    { key: 'model', label: 'Modelo' },
-    { key: 'serial_number', label: 'Número de Serie' },
-    { key: 'plate_device', label: 'Placa' },
+    { 
+      key: 'brand', 
+      label: 'Marca',
+      hideOnMobile: true
+    },
+    { 
+      key: 'model', 
+      label: 'Modelo',
+      hideOnMobile: true
+    },
+    { 
+      key: 'serial_number', 
+      label: 'Serial',
+      hideOnMobile: true,
+      render: (device: Device) => (
+        <span className="text-xs sm:text-sm font-mono">{device.serial_number}</span>
+      )
+    },
+    { 
+      key: 'plate_device', 
+      label: 'Placa',
+      hideOnMobile: true,
+      render: (device: Device) => (
+        <span className="text-xs sm:text-sm font-mono">{device.plate_device}</span>
+      )
+    },
     {
       key: 'specifications',
       label: 'Especificaciones',
+      hideOnMobile: true,
       render: (device: Device) => (
-        <div className="space-y-1">
+        <div className="space-y-1 max-w-32">
           {device.storage && (
             <div className="flex items-center text-xs text-gray-600">
-              <HardDrive className="h-3 w-3 mr-1" />
-              <span>{device.storage}</span>
+              <HardDrive className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="truncate">{device.storage}</span>
             </div>
           )}
           {device.ram && (
             <div className="flex items-center text-xs text-gray-600">
-              <Monitor className="h-3 w-3 mr-1" />
-              <span>{device.ram}</span>
+              <Monitor className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="truncate">{device.ram}</span>
             </div>
           )}
           {device.processor && (
             <div className="flex items-center text-xs text-gray-600">
-              <Cpu className="h-3 w-3 mr-1" />
-              <span className="truncate max-w-24" title={device.processor}>
+              <Cpu className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="truncate" title={device.processor}>
                 {device.processor}
               </span>
             </div>
           )}
           {device.dvr_storage && (
             <div className="flex items-center text-xs text-gray-600">
-              <HardDrive className="h-3 w-3 mr-1" />
-              <span>DVR: {device.dvr_storage}</span>
+              <HardDrive className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="truncate">DVR: {device.dvr_storage}</span>
             </div>
           )}
         </div>
@@ -382,19 +410,20 @@ export const Devices: React.FC = () => {
     },
     {
       key: 'warranty',
-      label: 'Garantía & Compra',
+      label: 'Garantía',
+      hideOnMobile: true,
       render: (device: Device) => (
-        <div className="space-y-1">
+        <div className="space-y-1 max-w-28">
           {device.purchase_date && (
             <div className="flex items-center text-xs text-gray-600">
-              <Calendar className="h-3 w-3 mr-1" />
-              <span>{new Date(device.purchase_date).toLocaleDateString()}</span>
+              <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="truncate">{new Date(device.purchase_date).toLocaleDateString()}</span>
             </div>
           )}
           {device.warranty_duration && device.warranty_unit && (
             <div className="flex items-center text-xs text-gray-600">
-              <Shield className="h-3 w-3 mr-1" />
-              <span>
+              <Shield className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="truncate">
                 {device.warranty_duration} {device.warranty_unit === 'years' ? 'años' : 'meses'}
               </span>
             </div>
@@ -413,13 +442,15 @@ export const Devices: React.FC = () => {
         }`}>
           {device.status ? (
             <>
-              <CheckCircle className="h-3 w-3 mr-1" />
-              Disponible
+              <CheckCircle className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="hidden sm:inline">Disponible</span>
+              <span className="sm:hidden">Disp.</span>
             </>
           ) : (
             <>
-              <XCircle className="h-3 w-3 mr-1" />
-              Asignado
+              <XCircle className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="hidden sm:inline">Asignado</span>
+              <span className="sm:hidden">Asign.</span>
             </>
           )}
         </span>
@@ -429,11 +460,11 @@ export const Devices: React.FC = () => {
       key: 'actions',
       label: 'Acciones',
       render: (device: Device) => (
-        <div className="flex space-x-2">
+        <div className="flex space-x-1 sm:space-x-2">
           {!device.status && (
             <button
               onClick={() => handleViewDevice(device)}
-              className="text-green-600 hover:text-green-800"
+              className="text-green-600 hover:text-green-800 p-1"
               title="Ver detalles del dispositivo asignado"
             >
               <Eye className="h-4 w-4" />
@@ -441,14 +472,14 @@ export const Devices: React.FC = () => {
           )}
           <button
             onClick={() => openModal(device)}
-            className="text-blue-600 hover:text-blue-800"
+            className="text-blue-600 hover:text-blue-800 p-1"
             title="Editar dispositivo"
           >
             <Edit className="h-4 w-4" />
           </button>
           <button
             onClick={() => handleDelete(device)}
-            className="text-red-600 hover:text-red-800"
+            className="text-red-600 hover:text-red-800 p-1"
             title="Eliminar dispositivo"
           >
             <Trash2 className="h-4 w-4" />
@@ -476,20 +507,23 @@ export const Devices: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Gestión de Dispositivos</h1>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Gestión de Dispositivos</h1>
         <button
           onClick={() => openModal()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          className="bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
         >
           <Plus className="h-4 w-4" />
-          <span>Nuevo Dispositivo</span>
+          <span className="hidden sm:inline">Nuevo Dispositivo</span>
+          <span className="sm:hidden">Nuevo</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex flex-col sm:flex-row gap-4 mb-4">
+      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        {/* Controles de búsqueda y filtros */}
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 mb-4">
           {/* Buscador personalizado con botón */}
           <div className="flex-1 relative">
             <div className="flex">
@@ -498,12 +532,12 @@ export const Devices: React.FC = () => {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyPress={handleSearchKeyPress}
-                placeholder="Buscar dispositivos por nombre, marca, modelo o serial..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Buscar dispositivos..."
+                className="flex-1 px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <button
                 onClick={handleSearch}
-                className="px-4 py-2 bg-blue-600 text-white border border-blue-600 rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                className="px-3 sm:px-4 py-2 bg-blue-600 text-white border border-blue-600 rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                 title="Buscar dispositivos"
               >
                 <Search className="h-4 w-4" />
@@ -511,7 +545,7 @@ export const Devices: React.FC = () => {
               {searchQuery && (
                 <button
                   onClick={handleClearSearch}
-                  className="ml-2 px-3 py-2 text-gray-500 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="ml-2 px-2 sm:px-3 py-2 text-gray-500 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm"
                   title="Limpiar búsqueda"
                 >
                   ✕
@@ -519,13 +553,15 @@ export const Devices: React.FC = () => {
               )}
             </div>
           </div>
+          
+          {/* Filtro de estado */}
           <select
             value={statusFilter === undefined ? 'all' : statusFilter.toString()}
             onChange={(e) => {
               const value = e.target.value;
               setStatusFilter(value === 'all' ? undefined : value === 'true');
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 lg:min-w-[180px]"
           >
             <option value="all">Todos los estados</option>
             <option value="true">Disponible</option>
@@ -535,17 +571,23 @@ export const Devices: React.FC = () => {
 
         {/* Información de paginación */}
         {devices.length > 0 && (
-          <div className="mb-4 text-sm text-gray-600">
-            Mostrando {((currentPage - 1) * 10) + 1} - {Math.min(currentPage * 10, total)} de {total} dispositivos
-            {searchQuery && (
-              <span className="ml-2 text-blue-600">
-                (filtrado por "{searchQuery}")
-              </span>
-            )}
-            {statusFilter !== undefined && (
-              <span className="ml-2 text-blue-600">
-                (estado: {statusFilter ? 'Disponible' : 'Asignado'})
-              </span>
+          <div className="mb-4 text-xs sm:text-sm text-gray-600 space-y-1">
+            <div>
+              Mostrando {((currentPage - 1) * 10) + 1} - {Math.min(currentPage * 10, total)} de {total} dispositivos
+            </div>
+            {(searchQuery || statusFilter !== undefined) && (
+              <div className="flex flex-wrap gap-2 text-blue-600">
+                {searchQuery && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100">
+                    Búsqueda: "{searchQuery}"
+                  </span>
+                )}
+                {statusFilter !== undefined && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100">
+                    Estado: {statusFilter ? 'Disponible' : 'Asignado'}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         )}

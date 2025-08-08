@@ -17,3 +17,115 @@
 .animate-slide-in-right {
   animation: slide-in-right 0.3s ease-out forwards;
 }
+
+/* Utilidades responsive personalizadas */
+@layer utilities {
+  /* Scrollbar personalizado para webkit */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  /* Texto que se corta con puntos suspensivos en múltiples líneas */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Mejoras para formularios en móvil */
+  .form-input-mobile {
+    @apply text-base; /* Previene el zoom en iOS */
+  }
+
+  /* Contenedor con altura mínima para evitar saltos */
+  .min-h-content {
+    min-height: calc(100vh - 200px);
+  }
+}
+
+/* Estilos base mejorados */
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    @apply text-gray-900 antialiased;
+  }
+  
+  /* Mejoras de accesibilidad */
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply outline-2 outline-offset-2 outline-blue-500;
+  }
+}
+
+/* Componentes personalizados */
+@layer components {
+  /* Botón responsive básico */
+  .btn-responsive {
+    @apply px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base font-medium rounded-md transition-colors duration-200;
+  }
+  
+  .btn-primary {
+    @apply btn-responsive bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+  }
+  
+  .btn-secondary {
+    @apply btn-responsive bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
+  }
+  
+  .btn-danger {
+    @apply btn-responsive bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
+  }
+
+  /* Card responsive */
+  .card {
+    @apply bg-white rounded-lg shadow p-4 sm:p-6;
+  }
+  
+  /* Form group responsive */
+  .form-group {
+    @apply space-y-1 sm:space-y-2;
+  }
+  
+  .form-label {
+    @apply block text-sm font-medium text-gray-700;
+  }
+  
+  .form-input {
+    @apply block w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 form-input-mobile;
+  }
+  
+  .form-select {
+    @apply form-input appearance-none bg-white bg-no-repeat bg-right pr-10;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-size: 1.5em 1.5em;
+  }
+}
