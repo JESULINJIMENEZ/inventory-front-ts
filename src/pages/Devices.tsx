@@ -25,6 +25,7 @@ export const Devices: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState(''); // Estado temporal for el input
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
+  const [typeFilter, setTypeFilter] = useState<number | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isRetireModalOpen, setIsRetireModalOpen] = useState(false);
@@ -75,6 +76,8 @@ export const Devices: React.FC = () => {
   const handleClearSearch = () => {
     setSearchInput('');
     setSearchQuery('');
+    setStatusFilter(undefined);
+    setTypeFilter(undefined);
     setCurrentPage(1);
   };
 
@@ -141,7 +144,14 @@ export const Devices: React.FC = () => {
       const response = await deviceService.getDevicesWithPagination(page, 10, search);
       
       console.log('Devices response:', response);
-      setDevices(transformArrayForDisplay(response.devices));
+      let filteredDevices = transformArrayForDisplay(response.devices);
+      
+      // Filtrar por tipo de dispositivo si está seleccionado
+      if (typeFilter) {
+        filteredDevices = filteredDevices.filter(device => device.type_device_id === typeFilter);
+      }
+      
+      setDevices(filteredDevices);
       setTotalPages(response.pagination.totalPages);
       setTotal(response.pagination.total);
       setCurrentPage(response.pagination.page);
@@ -182,13 +192,13 @@ export const Devices: React.FC = () => {
     setHasInitiallyLoaded(true);
   }, []);
 
-  // Effect para búsqueda manual (solo cuando cambia searchQuery o statusFilter)
+  // Effect para búsqueda manual (solo cuando cambia searchQuery, statusFilter o typeFilter)
   useEffect(() => {
     if (hasInitiallyLoaded) {
       setCurrentPage(1);
       fetchDevices(1, searchQuery, statusFilter);
     }
-  }, [searchQuery, statusFilter, hasInitiallyLoaded]);
+  }, [searchQuery, statusFilter, typeFilter, hasInitiallyLoaded]);
 
   // Effect separado para manejar cambios de página
   useEffect(() => {
@@ -382,10 +392,20 @@ export const Devices: React.FC = () => {
           <div className="min-w-0">
             <div className="font-medium text-sm sm:text-base truncate">{device.name}</div>
             <div className="text-xs text-gray-500 sm:hidden truncate">
-              {device.brand} {device.model}
+              {device.TypeDevice?.name || device.DeviceType?.name} • {device.brand} {device.model}
             </div>
           </div>
         </div>
+      )
+    },
+    {
+      key: 'type',
+      label: 'Tipo',
+      hideOnMobile: true,
+      render: (device: Device) => (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          {device.TypeDevice?.name || device.DeviceType?.name || 'Sin tipo'}
+        </span>
       )
     },
     { 
@@ -562,6 +582,63 @@ export const Devices: React.FC = () => {
         </button>
       </div>
 
+      {/* Panel de estadísticas */}
+      {total > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <Monitor className="h-8 w-8 text-blue-600" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-500">Total</p>
+                <p className="text-xl font-semibold text-gray-900">{total}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-500">Disponibles</p>
+                <p className="text-xl font-semibold text-gray-900">
+                  {devices.filter(d => d.status).length}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <XCircle className="h-8 w-8 text-red-600" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-500">Asignados</p>
+                <p className="text-xl font-semibold text-gray-900">
+                  {devices.filter(d => !d.status).length}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <Monitor className="h-8 w-8 text-purple-600" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-500">Tipos</p>
+                <p className="text-xl font-semibold text-gray-900">{deviceTypes.length}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-lg shadow p-4 sm:p-6">
         {/* Controles de búsqueda y filtros */}
         <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 mb-4">
@@ -583,11 +660,11 @@ export const Devices: React.FC = () => {
               >
                 <Search className="h-4 w-4" />
               </button>
-              {searchQuery && (
+              {(searchQuery || statusFilter !== undefined || typeFilter !== undefined) && (
                 <button
                   onClick={handleClearSearch}
                   className="ml-2 px-2 sm:px-3 py-2 text-gray-500 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm"
-                  title="Limpiar búsqueda"
+                  title="Limpiar filtros"
                 >
                   ✕
                 </button>
@@ -595,19 +672,39 @@ export const Devices: React.FC = () => {
             </div>
           </div>
           
-          {/* Filtro de estado */}
-          <select
-            value={statusFilter === undefined ? 'all' : statusFilter.toString()}
-            onChange={(e) => {
-              const value = e.target.value;
-              setStatusFilter(value === 'all' ? undefined : value === 'true');
-            }}
-            className="px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 lg:min-w-[180px]"
-          >
-            <option value="all">Todos los estados</option>
-            <option value="true">Disponible</option>
-            <option value="false">Asignado</option>
-          </select>
+          {/* Filtros */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Filtro de estado */}
+            <select
+              value={statusFilter === undefined ? 'all' : statusFilter.toString()}
+              onChange={(e) => {
+                const value = e.target.value;
+                setStatusFilter(value === 'all' ? undefined : value === 'true');
+              }}
+              className="px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 lg:min-w-[180px]"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="true">Disponible</option>
+              <option value="false">Asignado</option>
+            </select>
+
+            {/* Filtro por tipo de dispositivo */}
+            <select
+              value={typeFilter || 'all'}
+              onChange={(e) => {
+                const value = e.target.value;
+                setTypeFilter(value === 'all' ? undefined : Number(value));
+              }}
+              className="px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 lg:min-w-[180px]"
+            >
+              <option value="all">Todos los tipos</option>
+              {deviceTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Información de paginación */}
@@ -616,7 +713,7 @@ export const Devices: React.FC = () => {
             <div>
               Mostrando {((currentPage - 1) * 10) + 1} - {Math.min(currentPage * 10, total)} de {total} dispositivos
             </div>
-            {(searchQuery || statusFilter !== undefined) && (
+            {(searchQuery || statusFilter !== undefined || typeFilter !== undefined) && (
               <div className="flex flex-wrap gap-2 text-blue-600">
                 {searchQuery && (
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100">
@@ -626,6 +723,11 @@ export const Devices: React.FC = () => {
                 {statusFilter !== undefined && (
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100">
                     Estado: {statusFilter ? 'Disponible' : 'Asignado'}
+                  </span>
+                )}
+                {typeFilter !== undefined && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100">
+                    Tipo: {deviceTypes.find(type => type.id === typeFilter)?.name || 'Desconocido'}
                   </span>
                 )}
               </div>

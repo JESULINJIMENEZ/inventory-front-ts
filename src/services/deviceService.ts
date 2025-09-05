@@ -117,13 +117,25 @@ export const deviceService = {
       }
       
       const response = await api.get(`/admin/devices?${params.toString()}`);
+      console.log('API Response:', response.data);
       
-      // Verificar la estructura y proporcionar valores por defecto
+      // Verificar la estructura de la respuesta de tu API
       const data = response.data || {};
+      
+      // Adaptarse a la estructura de tu API
+      const total = data.total || 0;
+      const devices = Array.isArray(data.devices) ? data.devices : [];
+      const totalPages = Math.ceil(total / limitNum);
+      
       return {
-        devices: Array.isArray(data.devices) ? data.devices : [],
-        pagination: data.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 },
-        search: data.search || null,
+        devices: devices,
+        pagination: {
+          total: total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: totalPages
+        },
+        search: search || null,
         excluded: data.excluded || { assigned_devices: 0, retired_devices: 0, total_excluded: 0 }
       };
     } catch (error) {

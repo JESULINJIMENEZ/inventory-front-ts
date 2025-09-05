@@ -38,6 +38,7 @@ export interface Device {
   createdAt?: string;
   updatedAt?: string;
   DeviceType?: DeviceType;
+  TypeDevice?: DeviceType; // Compatibilidad con API actual
   // Campos específicos para portátiles
   storage?: string;
   ram?: string;
