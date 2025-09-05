@@ -49,7 +49,6 @@ export const LoginForm: React.FC = () => {
             />
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            LOGIS
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Sistema de Logística e Inventario

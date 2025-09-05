@@ -1,4 +1,4 @@
-# Mejoras de Diseño Responsive - Sistema LOGIS
+# Mejoras de Diseño Responsive
 
 ## Resumen de Cambios Implementados
 

@@ -59,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
                 alt="Salvator's Logo" 
                 className="h-8 sm:h-10 w-auto"
               />
-              <span className="text-lg sm:text-xl font-bold text-gray-800">LOGIS</span>
+              <span className="text-lg sm:text-xl font-bold text-gray-800"></span>
             </div>
           </div>
           <nav className="mt-8 flex-1">
@@ -89,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
           <div className="border-t border-gray-100 px-4 py-3 mt-auto">
             <div className="text-center">
               <p className="text-xs text-gray-400 mb-2">
-                Desarrollado por Jesús Jiménez
+                Desarrollado por Salvators
               </p>
               <div className="flex justify-center space-x-3">
                 <a
@@ -128,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
                 alt="Salvator's Logo" 
                 className="h-8 w-auto"
               />
-              <span className="text-lg font-bold text-gray-800">LOGIS</span>
+              <span className="text-lg font-bold text-gray-800"></span>
             </div>
             <button
               onClick={onClose}
@@ -165,7 +165,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
           <div className="border-t border-gray-100 px-4 py-3 mt-auto">
             <div className="text-center">
               <p className="text-xs text-gray-400 mb-2">
-                Desarrollado por Jesús Jiménez
+                Desarrollado por Salvators
               </p>
               <div className="flex justify-center space-x-3">
                 <a
