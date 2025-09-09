@@ -60,6 +60,19 @@ export interface DevicesResponse {
   };
 }
 
+export interface ApiDevicesResponse {
+  message: string;
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  devices: Device[];
+}
+
 export const deviceService = {
   getDevices: async (page: number = 1, limit: number = 10, search?: string) => {
     try {
@@ -119,24 +132,25 @@ export const deviceService = {
       const response = await api.get(`/admin/devices?${params.toString()}`);
       console.log('API Response:', response.data);
       
-      // Verificar la estructura de la respuesta de tu API
-      const data = response.data || {};
+      // Adaptarse a la estructura de respuesta de tu API
+      const data: ApiDevicesResponse = response.data;
       
-      // Adaptarse a la estructura de tu API
-      const total = data.total || 0;
-      const devices = Array.isArray(data.devices) ? data.devices : [];
-      const totalPages = Math.ceil(total / limitNum);
+      // Validar que tenemos la estructura esperada
+      if (!data.pagination || !Array.isArray(data.devices)) {
+        console.error('Invalid API response structure:', data);
+        throw new Error('Estructura de respuesta inválida de la API');
+      }
       
       return {
-        devices: devices,
+        devices: data.devices,
         pagination: {
-          total: total,
-          page: pageNum,
-          limit: limitNum,
-          totalPages: totalPages
+          total: data.pagination.totalItems,
+          page: data.pagination.currentPage,
+          limit: data.pagination.itemsPerPage,
+          totalPages: data.pagination.totalPages
         },
         search: search || null,
-        excluded: data.excluded || { assigned_devices: 0, retired_devices: 0, total_excluded: 0 }
+        excluded: { assigned_devices: 0, retired_devices: 0, total_excluded: 0 }
       };
     } catch (error) {
       console.error('Error in getDevicesWithPagination:', error);
@@ -237,6 +251,37 @@ export const deviceService = {
       throw new Error('ID de dispositivo retirado inválido');
     }
     const response = await api.patch(`/admin/devices/retired/${deviceId}`, data);
+    return response.data;
+  },
+
+  // Carga masiva de dispositivos
+  bulkUpload: async (csvFile: File): Promise<{
+    message: string;
+    summary: {
+      total_rows: number;
+      successful: number;
+      failed: number;
+    };
+    errors?: string[];
+  }> => {
+    const formData = new FormData();
+    formData.append('csvFile', csvFile);
+
+    const response = await api.post('/admin/devices/template/bulk-upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    return response.data;
+  },
+
+  // Descargar plantilla CSV
+  downloadTemplate: async (): Promise<Blob> => {
+    const response = await api.get('/admin/devices/template/download', {
+      responseType: 'blob',
+    });
+    
     return response.data;
   },
 };

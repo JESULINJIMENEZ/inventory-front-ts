@@ -6,12 +6,13 @@ import { deviceTypeService } from '../services/deviceTypeService';
 import { validateDeviceSpecificFields, validateWarrantyFields, validatePurchaseDate } from '../utils/deviceValidation';
 import { Table } from '../components/common/Table';
 import { Modal } from '../components/common/Modal';
+import { BulkUploadModal } from '../components/devices/BulkUploadModal';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorBoundaryFallback } from '../components/common/ErrorBoundaryFallback';
 import { EmptyState } from '../components/common/EmptyState';
 import { useNotification } from '../contexts/NotificationContext';
 import { transformArrayForDisplay } from '../utils/displayTransform';
-import { Plus, Edit, Trash2, Monitor, CheckCircle, XCircle, Eye, HardDrive, Cpu, Calendar, Shield, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Monitor, CheckCircle, XCircle, Eye, HardDrive, Cpu, Calendar, Shield, Search, Upload } from 'lucide-react';
 
 export const Devices: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -24,11 +25,10 @@ export const Devices: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState(''); // Estado temporal for el input
-  const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
-  const [typeFilter, setTypeFilter] = useState<number | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isRetireModalOpen, setIsRetireModalOpen] = useState(false);
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [viewingDevice, setViewingDevice] = useState<DeviceWithUser | null>(null);
   const [retiringDevice, setRetiringDevice] = useState<Device | null>(null);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
@@ -76,8 +76,6 @@ export const Devices: React.FC = () => {
   const handleClearSearch = () => {
     setSearchInput('');
     setSearchQuery('');
-    setStatusFilter(undefined);
-    setTypeFilter(undefined);
     setCurrentPage(1);
   };
 
@@ -135,7 +133,7 @@ export const Devices: React.FC = () => {
     loadRequiredFields(typeDeviceId);
   };
 
-  const fetchDevices = async (page = 1, search = '', status?: boolean) => {
+  const fetchDevices = async (page = 1, search = '') => {
     try {
       setIsLoading(true);
       setError(null);
@@ -144,12 +142,7 @@ export const Devices: React.FC = () => {
       const response = await deviceService.getDevicesWithPagination(page, 10, search);
       
       console.log('Devices response:', response);
-      let filteredDevices = transformArrayForDisplay(response.devices);
-      
-      // Filtrar por tipo de dispositivo si está seleccionado
-      if (typeFilter) {
-        filteredDevices = filteredDevices.filter(device => device.type_device_id === typeFilter);
-      }
+      const filteredDevices = transformArrayForDisplay(response.devices);
       
       setDevices(filteredDevices);
       setTotalPages(response.pagination.totalPages);
@@ -192,18 +185,18 @@ export const Devices: React.FC = () => {
     setHasInitiallyLoaded(true);
   }, []);
 
-  // Effect para búsqueda manual (solo cuando cambia searchQuery, statusFilter o typeFilter)
+  // Effect para búsqueda manual (solo cuando cambia searchQuery)
   useEffect(() => {
     if (hasInitiallyLoaded) {
       setCurrentPage(1);
-      fetchDevices(1, searchQuery, statusFilter);
+      fetchDevices(1, searchQuery);
     }
-  }, [searchQuery, statusFilter, typeFilter, hasInitiallyLoaded]);
+  }, [searchQuery, hasInitiallyLoaded]);
 
   // Effect separado para manejar cambios de página
   useEffect(() => {
     if (hasInitiallyLoaded) {
-      fetchDevices(currentPage, searchQuery, statusFilter);
+      fetchDevices(currentPage, searchQuery);
     }
   }, [currentPage, hasInitiallyLoaded]);
 
@@ -256,7 +249,7 @@ export const Devices: React.FC = () => {
       setEditingDevice(null);
       setRequiredFields(null);
       resetForm();
-      fetchDevices(currentPage, searchQuery, statusFilter);
+      fetchDevices(currentPage, searchQuery);
     } catch (error: any) {
       addNotification({
         type: 'error',
@@ -308,7 +301,7 @@ export const Devices: React.FC = () => {
       setIsRetireModalOpen(false);
       setRetiringDevice(null);
       setRetireData({ reason: '', notes: '', status: 'retired' });
-      fetchDevices(currentPage, searchQuery, statusFilter);
+      fetchDevices(currentPage, searchQuery);
     } catch (error: any) {
       addNotification({
         type: 'error',
@@ -572,14 +565,24 @@ export const Devices: React.FC = () => {
       {/* Header responsive */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Gestión de Dispositivos</h1>
-        <button
-          onClick={() => openModal()}
-          className="bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
-        >
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Nuevo Dispositivo</span>
-          <span className="sm:hidden">Nuevo</span>
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <button
+            onClick={() => setIsBulkUploadModalOpen(true)}
+            className="bg-green-600 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
+          >
+            <Upload className="h-4 w-4" />
+            <span className="hidden sm:inline">Carga Masiva</span>
+            <span className="sm:hidden">Cargar CSV</span>
+          </button>
+          <button
+            onClick={() => openModal()}
+            className="bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Nuevo Dispositivo</span>
+            <span className="sm:hidden">Nuevo</span>
+          </button>
+        </div>
       </div>
 
       {/* Panel de estadísticas */}
@@ -660,50 +663,16 @@ export const Devices: React.FC = () => {
               >
                 <Search className="h-4 w-4" />
               </button>
-              {(searchQuery || statusFilter !== undefined || typeFilter !== undefined) && (
+              {searchQuery && (
                 <button
                   onClick={handleClearSearch}
                   className="ml-2 px-2 sm:px-3 py-2 text-gray-500 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm"
-                  title="Limpiar filtros"
+                  title="Limpiar búsqueda"
                 >
                   ✕
                 </button>
               )}
             </div>
-          </div>
-          
-          {/* Filtros */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            {/* Filtro de estado */}
-            <select
-              value={statusFilter === undefined ? 'all' : statusFilter.toString()}
-              onChange={(e) => {
-                const value = e.target.value;
-                setStatusFilter(value === 'all' ? undefined : value === 'true');
-              }}
-              className="px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 lg:min-w-[180px]"
-            >
-              <option value="all">Todos los estados</option>
-              <option value="true">Disponible</option>
-              <option value="false">Asignado</option>
-            </select>
-
-            {/* Filtro por tipo de dispositivo */}
-            <select
-              value={typeFilter || 'all'}
-              onChange={(e) => {
-                const value = e.target.value;
-                setTypeFilter(value === 'all' ? undefined : Number(value));
-              }}
-              className="px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 lg:min-w-[180px]"
-            >
-              <option value="all">Todos los tipos</option>
-              {deviceTypes.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
 
@@ -713,23 +682,11 @@ export const Devices: React.FC = () => {
             <div>
               Mostrando {((currentPage - 1) * 10) + 1} - {Math.min(currentPage * 10, total)} de {total} dispositivos
             </div>
-            {(searchQuery || statusFilter !== undefined || typeFilter !== undefined) && (
+            {searchQuery && (
               <div className="flex flex-wrap gap-2 text-blue-600">
-                {searchQuery && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100">
-                    Búsqueda: "{searchQuery}"
-                  </span>
-                )}
-                {statusFilter !== undefined && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100">
-                    Estado: {statusFilter ? 'Disponible' : 'Asignado'}
-                  </span>
-                )}
-                {typeFilter !== undefined && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100">
-                    Tipo: {deviceTypes.find(type => type.id === typeFilter)?.name || 'Desconocido'}
-                  </span>
-                )}
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100">
+                  Búsqueda: "{searchQuery}"
+                </span>
               </div>
             )}
           </div>
@@ -1369,6 +1326,16 @@ export const Devices: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Bulk Upload Modal */}
+      <BulkUploadModal
+        isOpen={isBulkUploadModalOpen}
+        onClose={() => setIsBulkUploadModalOpen(false)}
+        onSuccess={() => {
+          setIsBulkUploadModalOpen(false);
+          fetchDevices(currentPage, searchQuery);
+        }}
+      />
     </div>
   );
 };
